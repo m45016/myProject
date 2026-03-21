@@ -1,4 +1,4 @@
-const documentMethods = { // методы привязанные к документу
+ export const documentMethods = { // методы привязанные к документу
   keyDown(e) { // отслеживание нажатия клавиш
     if (e.repeat) {
       return 1;

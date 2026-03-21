@@ -1,4 +1,4 @@
-const selectedFolders = { // объект избранных папок
+export const selectedFolders = { // объект избранных папок
   folders: [],
   isEmptyFolders: true,
   isSelectedFolder(path) { // проверка избранна ли папка
@@ -42,7 +42,7 @@ const selectedFolders = { // объект избранных папок
   }
 }
 
-const selectedFoldersMethods = { // методы избранных папок
+export const selectedFoldersMethods = { // методы избранных папок
   deleteSelectedFolder(folder) { // удаление избранной папки
 
     let nameFolder = folder.name;

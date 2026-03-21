@@ -4,7 +4,7 @@
 declare(strict_types=1);
 session_start();
 
-header('Content-Security-Policy: default-src \'self\'; script-src \'self\' \'unsafe-eval\'');
+header('Content-Security-Policy: default-src \'self\'; script-src \'self\'');
 
 if(!$_SESSION['login']){
 

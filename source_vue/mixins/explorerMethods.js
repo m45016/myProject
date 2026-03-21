@@ -1,4 +1,4 @@
-const explorerMethods = { // методы проводника (хранилища)
+export const explorerMethods = { // методы проводника (хранилища)
   createFolder() { // создание папки
 
     let url = 'action/createFolder.php';
@@ -553,7 +553,7 @@ const explorerMethods = { // методы проводника (хранилищ
       isFile = false;
     }
 
-    if (newName.length > 200 || newName === '<br>' || newName === "\n" || newName === "") {
+    if (newName.length > 200 || newName === '<br>' || newName === "\n") {
       alert('Имя файла должно быть от 1 до 200 символов.');
       return 1;
     } else if (this.forbiddenChars.map(elem => newName.includes(elem)).includes(true)) {

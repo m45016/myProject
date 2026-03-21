@@ -1,4 +1,4 @@
-const contextMenu = { // объект контекстного меню
+export const contextMenu = { // объект контекстного меню
   menu: null,
   groups: { // группы действии
     actionFile: {
@@ -129,7 +129,7 @@ const contextMenu = { // объект контекстного меню
   }
 };
 
-const contextmenuMethods = { // методы контекстного меню
+export const contextmenuMethods = { // методы контекстного меню
   hideContextMenu() { // скрытие контекстного меню
     if (!this.contextmenu.isHidden) {
       this.contextmenu.isHidden = true;

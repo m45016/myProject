@@ -1,63 +1,81 @@
-document.addEventListener('click', (e) => {
+'use strict';
+
+import API from "./apiModule.js";
+import { modal } from "./modalWindow.js";
+
+document.addEventListener('click', async (e) => {
   if (e.target.classList.contains('setChange')) {
     let isAdmin = e.target.parentNode.parentNode.children[0].children[0].children[0].checked;
     let maxStorage = e.target.parentNode.parentNode.children[1].children[0].value;
-    let idUser = e.target.parentNode.parentNode.parentNode.children[0].children[0].innerText;
+    let idUser = Number(e.target.parentNode.parentNode.parentNode.children[0].children[0].innerText);
 
-    console.log(isAdmin);
+    let json = {
+      isAdmin,
+      maxStorage,
+      idUser
+    };
 
-    let form = new FormData();
+    json = JSON.stringify(json);
 
-    form.append('isAdmin', isAdmin);
-    form.append('maxStorage', maxStorage);
-    form.append('idUser', idUser);
+    try {
+      let response = await API.send('admin', 'updateUserData', json);
 
-    let url = '/action/updateUserData.php';
+      if (response !== true) {
+        throw new Error('Данные не корректны');
+      }
 
-    fetch(url, {
-      method: 'POST',
-      body: form
-    })
-      .then(response => response.text())
-      .then(data => {
-        if (data !== '0') {
-          alert('Не удалось изменить данные пользователя');
-          return 1;
-        }
+      await modal.alert('Данные пользователя изменены');
+      document.getElementById('findUser').click();
 
-        alert('Данные пользователя изменены');
-        document.getElementById('findUser').click();
-
-      }).catch(() => {
-        alert("Ошибка подключения к серверу");
-      });
+    } catch (e) {
+      await modal.alert(e.message);
+    }
   }
 });
 
-document.getElementById('findUser').addEventListener('click', (e) => {
+document.getElementById('findUser').addEventListener('click', async (e) => {
   e.preventDefault();
-  let form = new FormData(document.getElementById('form'));
+
   let url = '/action/getUser.php';
 
-  fetch(url, {
-    method: 'POST',
-    body: form
-  })
-    .then(response => response.json())
-    .then(data => {
-      let user = null;
-      let container = document.getElementsByClassName('container')[0];
-      if(data['error'] === null){
-          user = `<div class="user">
-          <div class="rowData">ID: <span class='idUser'>${data['data']['id_user']}</span></div>
-          <div class="rowData">Имя пользователя: <span class='nameUser'>${data['data']['login']}</span></div>
-          <div class="rowData">Email: <span class='EmailUser'>${data['data']['email']}</span></div>
-          <div class="rowData">Права администратора: <span class='isAdmin'>${data['data']['isAdminText']}</span></div>
-          <div class="rowData">Сводбодное место в хранилище: <span class='freeStorage'>${data['data']['freeSize']}</span></div>
-          <div class="rowData">Занятое место в хранилище: <span class='sizeStorage'>${data['data']['sizeStorage']}</span></div>
-          <div class="rowData">Максимальный размер хранилища: <span class='maxStorage'>${data['data']['maxSizeStorage']}</span></div>
+  let login = document.querySelector("input[name='login']").value;
+  let container = document.getElementsByClassName('container')[0];
+
+  let json = {
+    login
+  };
+
+  json = JSON.stringify(json);
+
+  let user = null;
+
+  try {
+
+    let response = await API.send('admin', 'getUser', json);
+
+    if (
+      response?.id_user === undefined ||
+      response?.login === undefined ||
+      response?.email === undefined ||
+      response?.isAdminText === undefined ||
+      response?.freeSize === undefined ||
+      response?.sizeStorage === undefined ||
+      response?.maxSizeStorage === undefined ||
+      response?.isAdminCheckBox === undefined
+    ) {
+      throw new Error('Получены не корректные данные');
+    }
+
+    user = `<div class="user">
+          <div class="rowData">ID: <span class='idUser'>${response.id_user}</span></div>
+          <div class="rowData">Имя пользователя: <span class='nameUser'>${response.login}</span></div>
+          <div class="rowData">Email: <span class='EmailUser'>${response.email}</span></div>
+          <div class="rowData">Права администратора: <span class='isAdmin'>${response.isAdminText}</span></div>
+          <div class="rowData">Сводбодное место в хранилище: <span class='freeStorage'>${response.freeSize}</span></div>
+          <div class="rowData">Занятое место в хранилище: <span class='sizeStorage'>${response.sizeStorage}</span></div>
+          <div class="rowData">Максимальный размер хранилища: <span class='maxStorage'>${response.maxSizeStorage}</span></div>
           <div class="actionUser">
-            <div>Сделать админом: <span><input type="checkbox" class="setAdmin" ${data['data']['isAdminCheckBox']}> </span></div>
+            <div>Сделать админом: <span><input type="checkbox" class="setAdmin" ${response.isAdminCheckBox}> </span></div>
             <div>Установить размер хранилища: <select class='setMaxStorage'>
                 <option value="No Change">No Change</option>
                 <option value="5 МБ">5 Мб</option>
@@ -79,18 +97,12 @@ document.getElementById('findUser').addEventListener('click', (e) => {
             <div><button class='setChange'>Изменить данные</button></div>
           </div>
         </div>`;
-      }
-      else{ 
-        user = `<div class="text-center">${data['error']}</div>`;
-      }
 
-      container.innerHTML = '';
-      container.insertAdjacentHTML('beforeend',user);
+  } catch (e) {
+    user = `<div class="text-center">Ошибка: ${e.message}</div>`;
+  }
 
-    })
-    .catch((e)=>{
-      alert("Ошибка подключения к серверу.");
-      console.log(e);
-    });
+  container.innerHTML = '';
+  container.insertAdjacentHTML('beforeend', user);
 
-})
+});

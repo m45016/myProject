@@ -1,5 +1,5 @@
- export const documentMethods = { // методы привязанные к документу
-  keyDown(e) { // отслеживание нажатия клавиш
+export const documentMethods = { // методы привязанные к документу
+  async keyDown(e) { // отслеживание нажатия клавиш
     if (e.repeat) {
       return 1;
     }
@@ -9,7 +9,7 @@
       this.renameFile();
     } else if (e.code === 'Delete' && activeElements.length !== 0 && !this.renameMode) {
       e.preventDefault();
-      let confirmDeleteFiles = confirm('Вы точно хотите удалить выделенные файлы?');
+      let confirmDeleteFiles = await this.modal.confirm('Вы точно хотите удалить выделенные файлы?');
       if (confirmDeleteFiles) {
         let files = activeElements;
         this.deleteFiles(files);

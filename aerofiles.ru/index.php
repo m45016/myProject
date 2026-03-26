@@ -13,7 +13,7 @@ if(isset($_SESSION['login'])){
   $link = 'app.php';  
 }
 
-require_once "{$_SERVER['DOCUMENT_ROOT']}/view/indexView.php";
+require_once "{$_SERVER['DOCUMENT_ROOT']}/views/indexView.php";
 
 
 ?>

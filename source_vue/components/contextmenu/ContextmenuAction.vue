@@ -8,7 +8,7 @@ export default {
   props: ['action'],
   inject: ['MENU'], // разрешаем доступ к опубликованным методам приложения
   methods: {
-    click(e) {
+    async click(e) {
       let functionName = e.target.getAttribute('action');
       switch (functionName) {
         case 'createFolder':
@@ -30,7 +30,7 @@ export default {
           break;
         }
         case 'delete': {
-          let confirmDeleteFiles = confirm('Вы точно хотите удалить выделенные файлы?');
+          let confirmDeleteFiles = await this.MENU.modal.confirm('Вы точно хотите удалить выделенные файлы?');
           if (confirmDeleteFiles) {
             let files = this.MENU.getActiveElements();
             this.MENU.deleteFiles(files);
@@ -66,11 +66,11 @@ export default {
           this.MENU.abortLoading(file);
           break;
         }
-        case 'upload':{
+        case 'upload': {
           let file = document.querySelector("[type='file']");
-          if(!file){
+          if (!file) {
             file = this.MENU.createInputFile();
-            file.addEventListener('change',this.MENU.uploadFileFromInput.bind(null, file));
+            file.addEventListener('change', this.MENU.uploadFileFromInput.bind(null, file));
           }
           file.click();
         }

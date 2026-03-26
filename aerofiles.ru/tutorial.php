@@ -7,6 +7,6 @@ session_start();
 
 header('Content-Security-Policy: default-src \'self\'');
 
-require_once "{$_SERVER['DOCUMENT_ROOT']}/view/tutorialView.php";
+require_once "{$_SERVER['DOCUMENT_ROOT']}/views/tutorialView.php";
 
 ?>

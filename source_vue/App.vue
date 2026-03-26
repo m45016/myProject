@@ -13,7 +13,7 @@
   <div class="containerMain">
     <div class="containerWindow">
       <div class='pathContainer'><div class="scrollPathContainer"><span action='goToFolder' path='/'>root</span><span class='path' v-html='path'></span></div></div>
-      <div class="storageWindow" ref="storageWindow" :class="{withoutFiles: isEmptyStorage}" @click='clickOnStorage($event)' @dblclick='dblClickOnStorage($event)' @dragover="($e)=>$e.preventDefault()" @drop="uploadFiles($event)">
+      <div class="storageWindow" ref="storageWindow" :class="{withoutFiles: isEmptyStorage}" @click='clickOnStorage($event)' @dblclick='dblClickOnStorage($event)' @dragover="($e)=>$e.preventDefault()" @drop="uploadFileFromEvent($event)">
         <componentStorageElement v-for="(element, index) in elements" :element='element' :index='index'></componentStorageElement>
         <componentEmptyStorage v-if="isEmptyStorage" @create-folder="createFolder"></componentEmptyStorage>
       </div>
@@ -28,6 +28,8 @@ import {explorerMethods} from './mixins/explorerMethods.js'
 import {selectedFolders, selectedFoldersMethods} from './mixins/selectedFolders.js'
 import {contextMenu, contextmenuMethods} from './mixins/contextmenu.js'
 import {documentMethods} from './mixins/documentMethods.js'
+import API from './mixins/apiModule.js';
+import { modal } from './mixins/modalWindow.js';
 
 // компоненты
 import componentEmptyStorage from './components/storage/EmptyStorage.vue'
@@ -35,6 +37,7 @@ import componentStorageElement from './components/storage/StorageElement.vue'
 import componentContextMenu from './components/contextmenu/Contextmenu.vue'
 import componentEmptyFolders from './components/selectedFolders/EmptyFolders.vue'
 import componentSelectedFolders from './components/selectedFolders/SelectedFolders.vue'
+
 
 export default {
   components: {
@@ -62,27 +65,34 @@ export default {
       editElement: null,
       editName: null,
       contextmenu: { ...contextMenu },
-      selectedFolders: { ...selectedFolders }
+      selectedFolders: { ...selectedFolders },
+      API,
+      modal
     }
   },
   
-  created() {
-    fetch('/action/openRoot.php')
-      .then(response => response.json())
-      .then(data => {
-        console.log(data)
-        this.isEmptyStorage = data.emptyStorage
-        this.elements = data.elements
-        this.freeSize = data.freeSize
-        this.freeSizeInPercent = data.freeSizeInPercent
-        this.maxSize = data.maxSize
-        this.pathUser = data.pathUser
-        this.countFiles = data.countFiles
-        if (data.selectedFolders !== null) {
-          this.selectedFolders.folders = data.selectedFolders
-          this.selectedFolders.isEmptyFolders = false
-        }
-      })
+  async created() { // получение данных с сервера
+
+    try {
+      let response = await this.API.send('app', 'openRoot');
+
+      console.log(response);
+
+      this.isEmptyStorage = response.emptyStorage;
+      this.elements = response.elements;
+      this.freeSize = response.storageInfo.freeSizeStorage;
+      this.freeSizeInPercent = response.storageInfo.freeSizeStorageInPercent;
+      this.maxSize = response.storageInfo.maxSizeStorage;
+      this.pathUser = response.pathUser;
+      this.countFiles = response.countFiles;
+      if (response.selectedFolders !== null) {
+        this.selectedFolders.folders = response.selectedFolders;
+        this.selectedFolders.isEmptyFolders = false;
+      }
+
+    } catch (e) {
+      await this.modal.alert(`Ошибка: ${e.message}`);
+    }
   },
   
   mounted() {
@@ -117,7 +127,8 @@ export default {
         pasteFiles: this.pasteFiles,
         abortLoading: this.abortLoading,
         createInputFile: this.createInputFile,
-        uploadFileFromInput: this.uploadFileFromInput
+        uploadFileFromInput: this.uploadFileFromInput,
+        modal: this.modal
       }
     }
   },

@@ -25,4 +25,4 @@
     &copy; 2026
   </div>
 </div>
-<script src="/assets/js/warnToggle.js"></script>
+<script type='module' src="/assets/js/warnToggle.js"></script>

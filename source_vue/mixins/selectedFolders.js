@@ -3,7 +3,7 @@ export const selectedFolders = { // объект избранных папок
   isEmptyFolders: true,
   isSelectedFolder(path) { // проверка избранна ли папка
     let folders = this.folders;
-    for (folder of folders) {
+    for (let folder of folders) {
       if (folder.path.toLocaleLowerCase() === path.toLocaleLowerCase()) {
         return true;
       }
@@ -15,10 +15,10 @@ export const selectedFolders = { // объект избранных папок
 
       let folders = this.folders;
 
-      for (i in folders) {
+      for (let i in folders) {
         if (folders[i].path.toLocaleLowerCase().startsWith(pathFolder.toLocaleLowerCase())) {
           if (!folders.splice(i, 1).length === 0) {
-            alert('Ошибка: не удалось удалить папку');
+            this.modal.alert('Ошибка: не удалось удалить папку');
             return 1;
           }
         }
@@ -31,7 +31,7 @@ export const selectedFolders = { // объект избранных папок
   },
   updateNameFolder(oldName, oldPath, newName, newPath) { // обновление имени избранной папки
     let folders = this.folders;
-    for (folder of folders) {
+    for (let folder of folders) {
       if (folder.folder === oldName && folder.path === oldPath) {
         folder.folder = newName;
         folder.path = newPath;
@@ -43,81 +43,75 @@ export const selectedFolders = { // объект избранных папок
 }
 
 export const selectedFoldersMethods = { // методы избранных папок
-  deleteSelectedFolder(folder) { // удаление избранной папки
+  async deleteSelectedFolder(folder) { // удаление избранной папки
 
     let nameFolder = folder.name;
     let pathFolder = `${folder.path}${nameFolder}/`;
 
-    let form = new FormData();
-    form.append('pathFolder', pathFolder);
+    let json = {
+      pathFolder
+    }
+
+    json = JSON.stringify(json);
 
     let url = 'action/deleteSelectedFolder.php';
 
-    fetch(url, {
-      method: 'POST',
-      body: form
-    })
-      .then(response => response.text())
-      .then(data => {
-        switch (data) {
-          case '0':
-            let folders = this.selectedFolders.folders;
-            for (i in folders) {
-              if (folders[i].path.toLocaleLowerCase() === pathFolder.toLocaleLowerCase()) {
-                let isDeleted = folders.splice(i, 1).length !== 0;
-                if (!isDeleted) {
-                  alert('Ошибка: не удалось удалить папку');
-                  return 1;
-                }
-              }
-            }
+    try {
+      let response = await this.API.send('app', 'deleteSelectedFolder', json);
 
-            if (folders.length === 0) {
-              this.selectedFolders.isEmptyFolders = true;
-            }
-            break;
-          default:
-            alert('Ошибка: не удалось удалить папку');
+      if (response !== true) {
+        throw new Error('Не корректные данные');
+      }
+
+      let folders = this.selectedFolders.folders;
+      for (let i in folders) {
+        if (folders[i].path.toLocaleLowerCase() === pathFolder.toLocaleLowerCase()) {
+          let isDeleted = folders.splice(i, 1).length !== 0;
+          if (!isDeleted) {
+            throw new Error('Не удалось удалить папку');
+          }
         }
+      }
 
-      }).catch(() => {
-        alert("Ошибка подключения к серверу.");
-      });
+      if (folders.length === 0) {
+        this.selectedFolders.isEmptyFolders = true;
+      }
+
+
+    } catch (e) {
+      await this.modal.alert(`Ошибка удлаения папки из избранного: ${e.message}`);
+    }
   },
-  addSelectFolder(folder) { // добавление папки в избранное
+  async addSelectFolder(folder) { // добавление папки в избранное
     let nameFolder = folder.name;
     let pathFolder = `${folder.path}${nameFolder}/`;
 
-    let form = new FormData();
-    form.append('nameFolder', nameFolder);
-    form.append('pathFolder', pathFolder);
+    let json = {
+      nameFolder,
+      pathFolder
+    }
 
-    let url = 'action/addSelectedFolder.php';
+    json = JSON.stringify(json);
 
-    fetch(url, {
-      method: 'POST',
-      body: form
-    })
-      .then(response => response.text())
-      .then(data => {
-        switch (data) {
-          case '0':
-            this.selectedFolders.folders.push({
-              folder: nameFolder,
-              path: pathFolder
-            });
+    try {
 
-            if (this.selectedFolders.isEmptyFolders) {
-              this.selectedFolders.isEmptyFolders = false;
-            }
+      let response = await this.API.send('app', 'addSelectedFolder', json);
 
-            break;
-          default:
-            alert('Ошибка: не удалось добавить папку');
-        }
+      if (response !== true) {
+        throw new Error('Не корректные данные');
+      }
 
-      }).catch(() => {
-        alert("Ошибка подключения к серверу.");
+      this.selectedFolders.folders.push({
+        folder: nameFolder,
+        path: pathFolder
       });
+
+      if (this.selectedFolders.isEmptyFolders) {
+        this.selectedFolders.isEmptyFolders = false;
+      }
+
+    } catch (e) {
+      await this.modal.alert(`Ошибка добавления папки в избранное: ${e.message}`);
+    }
   }
 }

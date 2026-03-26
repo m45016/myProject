@@ -6,6 +6,6 @@ session_start();
 
 header('Content-Security-Policy: default-src \'self\'');
 
-require_once "{$_SERVER['DOCUMENT_ROOT']}/view/authView.php";
+require_once "{$_SERVER['DOCUMENT_ROOT']}/views/authView.php";
 
 ?>

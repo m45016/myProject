@@ -1,38 +1,27 @@
 export const explorerMethods = { // методы проводника (хранилища)
-  createFolder() { // создание папки
+  async createFolder() { // создание папки
+    try {
 
-    let url = 'action/createFolder.php';
+      let response = await this.API.send('app', 'createFolder');
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
+      console.log(response);
 
-        console.log(data);
+      this.elements.push(response);
+      this.countFiles++;
+      if (this.isEmptyStorage) {
+        this.isEmptyStorage = false;
+      }
 
-        let status = data['status'];
-
-        switch (status) {
-          case '0':
-            this.elements.push(data['data']);
-            this.countFiles++;
-            if (this.isEmptyStorage) {
-              this.isEmptyStorage = false;
-            }
-            break;
-          default:
-            alert('Не удалось создать папку.');
-            if (!this.isEmptyStorage) {
-              this.isEmptyStorage = true;
-            }
-        }
-
-      }).catch(() => {
-        alert("Ошибка подключения к серверу.");
-      });
+    } catch (e) {
+      await this.modal.alert(`Ошибка создания папки: ${e.message}`);
+      if (!this.isEmptyStorage) {
+        this.isEmptyStorage = true;
+      }
+    }
   },
   finishLoading(progressNumber) { // завершение загрузки файла
     let elements = this.elements;
-    for (element of elements) {
+    for (let element of elements) {
       if (element?.progressNumber === progressNumber) {
         element.isLoading = false;
         break;
@@ -58,7 +47,7 @@ export const explorerMethods = { // методы проводника (хран�
   },
   updateDataElement(progressNumber, data) { // обновление метаданных о файле
     let elements = this.elements;
-    for (element of elements) {
+    for (let element of elements) {
       if (element?.progressNumber === progressNumber) {
         element.dataType.title = data.dataType.title;
         element.formatedSize = data.formatedSize;
@@ -75,7 +64,7 @@ export const explorerMethods = { // методы проводника (хран�
   },
   async uploadFiles(files) { // загрузка файлов
     // e.preventDefault();
-    const url = 'action/uploadFiles.php';
+    const url = 'api/app/uploadFiles.php';
     // const files = e.dataTransfer.files;
     let filesLength = files.length;
 
@@ -106,7 +95,7 @@ export const explorerMethods = { // методы проводника (хран�
         progressNumber: progressNumber
       };
 
-      this.elements.push(element)
+      this.elements.push(element);
 
       form.append('file', files[i]);
 
@@ -122,13 +111,55 @@ export const explorerMethods = { // методы проводника (хран�
 
       };
 
-      xhr.onload = (e) => {
+      xhr.onerror = async () => {
+        await this.modal.alert('Ошибка загрузки: Нет интернет соединения!');
+        this.finishLoading(progressNumber);
+        for (let i = 0; i < this.elements.length; i++) {
+          if (this.elements[i].progressNumber === progressNumber) {
+            this.elements.splice(i, 1);
+            if (this.elements.length === 0) {
+              this.isEmptyStorage = true;
+            }
+            this.$nextTick();
+          }
+        }
+      }
 
-        let response = JSON.parse(e.target.response);
+      xhr.onload = async (e) => {
+        try {
 
-        if (response['status'] !== '0') {
-          alert(response['textError']);
-          console.log(response);
+          if (e.target.status !== 200) {
+            throw new Error(`${e.target.status} ${e.target.statusText}`);
+          }
+
+          let response = JSON.parse(e.target.response);
+
+          if (response?.data === undefined || response?.error === undefined) {
+            throw new Error('Получена не корректная структура данных');
+          }
+
+          if (typeof response.error === 'string') {
+            throw new Error(response.error);
+          }
+          response = response['data'];
+
+          this.updateProgressLoad(progressNumber, 100, xhr);
+
+          this.updateDataElement(progressNumber, response);
+
+          this.freeSize = response['freeSize'];
+          this.freeSizeInPercent = response['freeSizeInPercent'];
+
+          setTimeout(() => {
+            this.finishLoading(progressNumber);
+          }, 500);
+
+          this.countFiles++;
+          xhr = null;
+
+        } catch (e) {
+          this.modal.alert(`Ошибка загрузки: ${e.message}!`);
+          // console.log(response);
           this.finishLoading(progressNumber);
           for (let i = 0; i < this.elements.length; i++) {
             if (this.elements[i].progressNumber === progressNumber) {
@@ -139,24 +170,7 @@ export const explorerMethods = { // методы проводника (хран�
               this.$nextTick();
             }
           }
-          return 1
         }
-
-        console.log(response);
-
-        this.updateProgressLoad(progressNumber, 100, xhr);
-
-        this.updateDataElement(progressNumber, response['dataFile']);
-
-        this.freeSize = response['freeSize'];
-        this.freeSizeInPercent = response['freeSizePercent'];
-
-        setTimeout(() => {
-          this.finishLoading(progressNumber);
-        }, 500);
-
-        this.countFiles++;
-        xhr = null;
 
       }
       xhr.send(form);
@@ -201,7 +215,7 @@ export const explorerMethods = { // методы проводника (хран�
   getActiveElements() { // получение выбранных элементов
     let elements = this.elements;
     let activeElements = [];
-    for (element of elements) {
+    for (let element of elements) {
       if (element.isActive) {
         activeElements.push(element);
       }
@@ -211,7 +225,7 @@ export const explorerMethods = { // методы проводника (хран�
   },
   getFirstActiveElement() { // получение первого выбранного элемента
     let elements = this.elements;
-    for (element of elements) {
+    for (let element of elements) {
       if (element.isActive) {
         return element;
       }
@@ -240,63 +254,64 @@ export const explorerMethods = { // методы проводника (хран�
   goToPath(path, pathSelFolder) { // перейти по пути
     this.updateWindow(path, pathSelFolder);
   },
-  updateWindow(path, pathSelFolder) { // обновить окно хранилища
+  async updateWindow(path, pathSelFolder) { // обновить окно хранилища
 
-    let url = 'action/openFolder.php';
-
-    let form = new FormData();
-    form.append('path', path);
     console.log(path);
-    fetch(url, {
-      method: 'POST',
-      body: form
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data['isSelected']) {
-          this.selectedFolders.deleteSelectedFolderForPath(pathSelFolder);
-          return 1;
-        } else if (!data['isSelected'] && !data['isExists']) {
-          this.updateWindow('/');
-          return 1;
-        }
 
-        console.log(data);
-        this.isEmptyStorage = data.emptyStorage;
-        this.elements = data.elements;
-        this.pathUser = data.pathUser;
-        this.countFiles = data.countFiles;
+    let json = {
+      path
+    };
 
-        console.log(this);
+    json = JSON.stringify(json);
 
-        let path = this.pathUser.split('/').reduce((fullPath, folder) => {
+    try {
 
-          if (folder === '') {
-            fullPath.path += '/';
-            fullPath.elements.push('');
-            return fullPath;
-          }
-          fullPath.path += `${folder}/`;
+      let response = await this.API.send('app', 'openFolder', json);
 
-          let span = `<span action='goToFolder' path='${fullPath.path}'>${folder}</span>`;
-          fullPath.elements.push(span);
+      if (response.isSelected) {
+        this.selectedFolders.deleteSelectedFolderForPath(pathSelFolder);
+        return 1;
+      } else if (!response.isSelected && !response.isExists) {
+        this.updateWindow('/');
+        return 1;
+      }
+
+      console.log(response);
+      this.isEmptyStorage = response.emptyStorage;
+      this.elements = response.elements;
+      this.pathUser = response.pathUser;
+      this.countFiles = response.countFiles;
+
+      console.log(this);
+
+      let path = this.pathUser.split('/').reduce((fullPath, folder) => {
+
+        if (folder === '') {
+          fullPath.path += '/';
+          fullPath.elements.push('');
           return fullPath;
+        }
+        fullPath.path += `${folder}/`;
 
-        }, {
-          elements: [],
-          path: ''
-        });
+        let span = `<span action='goToFolder' path='${fullPath.path}'>${folder}</span>`;
+        fullPath.elements.push(span);
+        return fullPath;
 
-        this.path = path.elements.join('/');
-      })
-      .catch(() => {
-        alert("Ошибка подключения к серверу.");
+      }, {
+        elements: [],
+        path: ''
       });
+
+      this.path = path.elements.join('/');
+
+    } catch (e) {
+      await this.modal.alert(`Ошибка открытия папки: ${e.message}`);
+    }
   },
-  pasteFiles() { // вставить файлы
+  async pasteFiles() { // вставить файлы
 
     if (this.isEmptyBuffer()) {
-      alert('Буффер обмена пустой');
+      await this.modal.alert('Буффер обмена пустой');
       return 1;
     }
 
@@ -305,14 +320,14 @@ export const explorerMethods = { // методы проводника (хран�
     let files = pasteFiles.files;
 
     console.log(pasteFiles);
-    let url = null;
+    let action = null;
 
     switch (pasteFiles.mode) {
       case 'copy':
-        url = 'action/copyFiles.php';
+        action = 'copyFiles';
         break;
       case 'cut':
-        url = 'action/cutFiles.php';
+        action = 'cutFiles';
         break;
       default:
         return 1;
@@ -320,28 +335,23 @@ export const explorerMethods = { // методы проводника (хран�
 
     for (let i = 0; i < files.length; i++) {
       let file = files[i];
-      let form = new FormData();
 
-      form.append('oldPath', pasteFiles.oldPath);
-      form.append('newPath', pasteFiles.newPath);
-      form.append('fileName', file[0]);
-      form.append('fileType', file[1]);
+      let json = {
+        oldPath: pasteFiles.oldPath,
+        newPath: pasteFiles.newPath,
+        fileName: file[0],
+        fileType: file[1]
+      };
 
-      fetch(url, {
-        method: 'POST',
-        body: form
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data);
+      json = JSON.stringify(json);
 
-          if (!data.status) {
-            alert('Ошибка: Не удалось вставить файл');
-            return 1;
-          }
-          else if (data.status !== true && data.status !== 0) {
-            alert(data.textError);
-            return 1;
+      this.API.send('app', action, json)
+        .then(response => {
+
+          console.log(response);
+
+          if (!response.status) {
+            throw new Error('Ошибка: Не удалось вставить файл');
           }
 
           if (this.isEmptyStorage) {
@@ -350,19 +360,20 @@ export const explorerMethods = { // методы проводника (хран�
           }
 
           let pathUser = this.pathUser;
-          let dataFile = data.file[0];
+          let dataFile = response.file;
           let file = null;
 
           this.countFiles++;
 
           if (pasteFiles.mode === 'copy') {
-            this.freeSize = data['freeSize'];
-            this.freeSizeInPercent = data['freeSizePercent'];
+            this.freeSize = response['freeSize'];
+            this.freeSizeInPercent = response['freeSizePercent'];
           } else if (pasteFiles.mode === 'cut') {
             this.buffer = null;
           }
-          if (data['selectedFolders'] !== null && pasteFiles.mode === 'cut') {
-            this.selectedFolders.folders = data['selectedFolders'];
+
+          if (response.selectedFolders !== null && pasteFiles.mode === 'cut') {
+            this.selectedFolders.folders = response.selectedFolders;
           }
 
           file = {
@@ -383,8 +394,8 @@ export const explorerMethods = { // методы проводника (хран�
           };
           this.elements.push(file);
 
-        }).catch(() => {
-          alert("Ошибка подключения к серверу.");
+        }).catch(e => {
+          this.modal.alert(`Ошибка вставки: ${e.message}`);
         });
     }
   },
@@ -437,99 +448,101 @@ export const explorerMethods = { // методы проводника (хран�
     return form;
 
   },
-  downloadFiles(files) { // скачать файл
+  async downloadFiles(files) { // скачать файл
     let fileNames = files.map(elem => `${elem.name}.${elem.dataType.type}`);
-    let url = 'action/downloadFile.php';
+    let url = 'api/app/downloadFile.php';
 
     for (let i = 0; i < fileNames.length; i++) {
 
       let fileName = fileNames[i];
-      let form = new FormData();
 
-      form.append('fileName', fileName);
+      let json = {
+        fileName
+      };
 
-      fetch(url, {
-        method: 'POST',
-        body: form
-      })
-        .then(response => response.text())
-        .then(data => {
-          let token = data;
-          let dataInput = {
-            'fileName': fileName,
-            't': token
-          };
-          let form = this.createHiddenForm(dataInput);
-          form.method = 'POST';
-          form.action = url;
-          document.body.append(form);
-          form.querySelector('[type="submit"]').click();
-          form.remove();
-        }).catch(() => {
-          alert("Ошибка подключения к серверу.");
-        });
+      json = JSON.stringify(json);
 
+      try {
+        let response = await this.API.send('app', 'downloadFile', json);
+
+        if (
+          typeof response !== 'string' ||
+          response.length === 0
+        ) {
+          throw new Error('Данные не корректные');
+        }
+
+        let token = response;
+
+        let dataInput = {
+          'fileName': fileName,
+          't': token
+        };
+
+        let form = this.createHiddenForm(dataInput);
+        form.method = 'POST';
+        form.action = url;
+        document.body.append(form);
+        form.querySelector('[type="submit"]').click();
+        form.remove();
+
+      } catch (e) {
+        await this.modal.alert(`Ошибка скачивания: ${e.message}`);
+      }
     }
   },
-  deleteFiles(files) { // удалить файл
+  async deleteFiles(files) { // удалить файл
     let allElements = this.elements;
     let fileNames = files.map(elem => `${elem.name}${elem.isFile ? `.${elem.dataType.type}` : ''}`);
     let isFiles = files.map(elem => elem.isFile);
     let pathFiles = files.map(elem => `${elem.path + elem.name + '/'}`);
+
+    console.log(files);
 
     for (let i = 0; i < files.length; i++) {
 
       let fileName = fileNames[i];
       let isFile = isFiles[i];
       let filePath = pathFiles[i];
-      let URL = "action/deleteFile.php";
+
       console.log(filePath);
+      console.log(i);
 
-      let form = new FormData();
+      let json = {
+        fileName,
+        isFile
+      }
 
-      form.append('filePath', fileName);
-      form.append('isFile', isFile);
-      fetch(URL, {
-        method: "POST",
-        body: form
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data);
-          switch (data['status']) {
-            case '0':
-              for (i in allElements) {
-                if (allElements[i].path + allElements[i].name + '/' === filePath) {
-                  allElements.splice(i, 1);
-                  break;
-                }
-              }
-              if (data['folders']) {
-                data['folders'].forEach(function (elem) {
-                  return this.selectedFolders.deleteSelectedFolderForPath(elem)
-                }, {
-                  selectedFolders: this.selectedFolders
-                });
-              }
-              this.countFiles--;
-              if (this.countFiles === 0) {
-                this.isEmptyStorage = true;
-              }
-              this.freeSize = data['freeSize'];
-              this.freeSizeInPercent = data['freeSizePercent'];
-              return true;
-            default:
-              for (i in allElements) {
-                if (allElements[i].path + allElements[i].name + '/' === filePath) {
-                  allElements.splice(i, 1);
-                  break;
-                }
-              }
-              return false;
+      json = JSON.stringify(json);
+
+      this.API.send('app', 'deleteFile', json)
+        .then(response => {
+
+          console.log(response);
+
+          for (let i in allElements) {
+            if (allElements[i].path + allElements[i].name + '/' === filePath) {
+              allElements.splice(i, 1);
+              break;
+            }
           }
 
-        }).catch(() => {
-          alert("Ошибка подключения к серверу.");
+          if (response['folders']) {
+            response['folders'].forEach(function (elem) {
+              return this.selectedFolders.deleteSelectedFolderForPath(elem)
+            }, {
+              selectedFolders: this.selectedFolders
+            });
+          }
+
+          this.countFiles--;
+          if (this.countFiles === 0) {
+            this.isEmptyStorage = true;
+          }
+          this.freeSize = response['freeSize'];
+          this.freeSizeInPercent = response['freeSizePercent'];
+        }).catch(async (e) => {
+          this.modal.alert(`Ошибка удаления: ${e.message}`);
         });
     }
   },
@@ -541,6 +554,8 @@ export const explorerMethods = { // методы проводника (хран�
 
     let newName = this.editElement.innerText.trim();
     let oldName = this.editName;
+    let oldFullName = null;
+    let newFullName = null;
     let element = this.elements[this.editElement.parentNode.getAttribute('index')];
     let isFile = true;
     let oldPath = null;
@@ -553,16 +568,16 @@ export const explorerMethods = { // методы проводника (хран�
       isFile = false;
     }
 
-    if (newName.length > 200 || newName === '<br>' || newName === "\n") {
-      alert('Имя файла должно быть от 1 до 200 символов.');
+    if (newName.length > 200 || newName === '<br>' || newName === "\n" || newName === "") {
+      await this.modal.alert('Имя файла должно быть от 1 до 200 символов.');
       return 1;
     } else if (this.forbiddenChars.map(elem => newName.includes(elem)).includes(true)) {
-      alert('Имя файла не должно содержать следующих символов:\n? \\ / * : " < > |');
+      await this.modal.alert('Имя файла не должно содержать следующих символов:\n? \\ / * : " < > |');
       return 1;
     } else if (this.isExistFile(newName)) {
       element.name = oldName;
       this.editElement.focus();
-      alert("Такой файл уже существует. Придумайте другое название.");
+      await this.modal.alert("Такой файл уже существует. Придумайте другое название.");
       return 1;
     }
 
@@ -579,51 +594,57 @@ export const explorerMethods = { // методы проводника (хран�
 
     if (isFile) {
       let typeFile = `.${element.dataType.type}`;
-      oldName += typeFile;
-      newName += typeFile;
+      oldFullName = `${oldName}${typeFile}`;
+      newFullName = `${newName}${typeFile}`;
+    }
+    else {
+      oldFullName = oldName;
+      newFullName = newName;
     }
 
     let isSelectedFolder = this.selectedFolders.isSelectedFolder(oldPath);
 
-    console.log(oldName, newName, isFile, isSelectedFolder, oldPath);
+    console.log(oldFullName, newFullName, isFile, isSelectedFolder, oldPath);
 
-    let url = 'action/renameFile.php';
-    let form = new FormData();
+    let json = {
+      oldFullName,
+      newFullName,
+      isFile,
+      isSelectedFolder
+    }
 
-    form.append('oldName', oldName);
-    form.append('newName', newName);
-    form.append('isFile', isFile);
-    form.append('isSelectedFolder', isSelectedFolder);
+    json = JSON.stringify(json);
 
-    fetch(url, {
-      method: "POST",
-      body: form
-    })
-      .then(response => response.json())
-      .then(async (data) => {
-        console.log('renamed');
+    try {
 
-        if (data['isRenamed'] !== '0') {
-          alert('Такой файл уже существует.');
-          this.editName = oldName;
-          this.editElement.innerText = oldName
-          element.isEditName = true;
-          return 1
-        } else if (isSelectedFolder && data['data'] !== null) {
-          this.selectedFolders.updateNameFolder(data['data']['oldName'], data['data']['oldPath'], data['data']['newName'], data['data']['newPath']);
-        }
-        if (data['selectedFolders'] !== null) {
-          this.selectedFolders.folders = data['selectedFolders'];
-        }
-        element.name = newName;
-        this.editElement = null;
-        this.editName = null;
-        this.renameMode = false;
-      })
-      .catch(() => {
-        this.renameMode = true;
-        alert("Ошибка подключения к серверу.");
-      });
+      let response = await this.API.send('app', 'renameFile', json);
+
+      console.log('renamed');
+
+      if (!response.isRenamed) {
+        await this.modal.alert('Такой файл уже существует.');
+        this.editName = oldName;
+        this.editElement.innerText = oldName
+        element.isEditName = true;
+        return 1
+      }
+      else if (isSelectedFolder && response.isSelectedFolder !== null) {
+        this.selectedFolders.updateNameFolder(response.isSelectedFolder.oldName, response.isSelectedFolder.oldPath, response.isSelectedFolder.newName, response.isSelectedFolder.newPath);
+      }
+
+      if (response.selectedFolders !== null) {
+        this.selectedFolders.folders = response.selectedFolders;
+      }
+
+      element.name = newName;
+      this.editElement = null;
+      this.editName = null;
+      this.renameMode = false;
+
+    } catch (e) {
+      this.renameMode = false;
+      await this.modal.alert(`Ошибка переименования: ${e.message}`);
+    }
   },
   async setModeRenameFile(file) { // установть режим редактирования имени файла
 
@@ -641,7 +662,7 @@ export const explorerMethods = { // методы проводника (хран�
   isExistFile(nameFile) { // проверка существует ли файл
     let elements = this.elements;
     let countElements = 0;
-    for (element of elements) {
+    for (let element of elements) {
       if (element.name.toLocaleLowerCase() === nameFile.toLocaleLowerCase()) {
         countElements++;
       }
@@ -665,20 +686,20 @@ export const explorerMethods = { // методы проводника (хран�
     document.body.insertAdjacentElement('beforeend', input);
     return input;
   },
-  uploadFileFromInput(input){ // загрузка файлов через поле 
+  uploadFileFromInput(input) { // загрузка файлов через поле 
     console.log(input.files);
-    input.removeEventListener('change',this.uploadFileFromInput.bind(null, input));
+    input.removeEventListener('change', this.uploadFileFromInput.bind(null, input));
     input.remove();
     this.uploadFiles(input.files);
   },
-  uploadFileFromEvent(e){ // загрузка файлов через событие drag'n drop
+  async uploadFileFromEvent(e) { // загрузка файлов через событие drag'n drop
     e.preventDefault();
     let files = e.dataTransfer.files;
     let items = e.dataTransfer.items;
-    for(let item of items){
+    for (let item of items) {
       let entry = item.webkitGetAsEntry();
-      if(entry.isDirectory){
-        alert('Загружать папки нельзя, только файлы');
+      if (entry.isDirectory) {
+        await this.modal.alert('Загружать папки нельзя, только файлы');
         return 1;
       }
     }

@@ -98,7 +98,7 @@ export const contextMenu = { // объект контекстного меню
   showGroup(nameGroup, hideActions = null) { // отображение конкретной группы
     let groups = this.groups;
     let showGrops = [nameGroup];
-    for (group in groups) {
+    for (let group in groups) {
       if (showGrops.includes(group)) {
         groups[group].isHidden = false;
         let actions = groups[group].actions;

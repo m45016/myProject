@@ -1,18 +1,19 @@
-const STATUS_REQUEST = { 'success': '0', 'emailError': '1', 'dataError': '2' };
-const URL_REQUEST = 'action/resetPasswordUser.php';
 
-document.getElementsByName('resetPassword_btn')[0].addEventListener('click', (e) => {
+'use strict';
+
+import API from './apiModule.js';
+
+document.getElementsByName('resetPassword_btn')[0].addEventListener('click', async (e) => {
 
   let email = document.getElementsByName('email')[0].value;
-  let pass = document.getElementsByName('password')[0].value;
-  let form = document.getElementsByClassName('form')[0];
+  let password = document.getElementsByName('password')[0].value;
   let message = document.getElementsByClassName('message')[0];
 
   message.innerText = "";
 
-  if (email.length !== 0 &&
-    pass.length !== 0 &&
-    /(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}/.test(pass) &&
+  if (
+    email.length !== 0 &&
+    /(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}/.test(password) &&
     email.includes('@') &&
     email[email.length - 1] !== '@'
   ) {
@@ -21,31 +22,26 @@ document.getElementsByName('resetPassword_btn')[0].addEventListener('click', (e)
 
     message.innerText = "Получение данных от сервера";
 
-    fetch(URL_REQUEST, {
-      method: "POST",
-      body: new FormData(form)
-    })
-      .then(result => result.text())
-      .then(data => {
+    let json = {
+      email,
+      password,
+      resPass: true
+    };
 
-        switch (data) {
+    json = JSON.stringify(json);
 
-          case STATUS_REQUEST['success']:
-            message.innerText = "Пароль изменен";
-            location = "auth.php";
-            break;
-          case STATUS_REQUEST['emailError']:
-            message.innerText = "Пользователя с таким email нет";
-            break;
-          default:
-            message.innerText = `Ошибка: ${data}.`;
+    try {
+      let response = await API.send('auth','resetPasswordUser', json);
 
-        }
+      if(response !== true){
+        throw new Error('Получены не корректные данные');
+      }
 
-      }).catch(()=>{
-      message.innerHTML = "Ошибка подключения к серверу";
-    });
+      message.innerText = "Пароль изменен";
+      location = "auth.php";
 
+    } catch (e) {
+      message.innerText = `Ошибка: ${e.message}`;
+    }
   }
-
 });

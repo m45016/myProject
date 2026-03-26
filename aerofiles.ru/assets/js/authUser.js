@@ -1,48 +1,43 @@
-const STATUS_REQUEST = {'success':'0','userError':'1','passwordError': '2','dataError':'3'};
-const URL_REQUEST = 'action/authUser.php';
+'use strict';
 
-document.getElementsByName('auth_btn')[0].addEventListener('click',(e)=>{
+import API from "./apiModule.js";
+
+document.getElementsByName('auth_btn')[0].addEventListener('click', async (e) => {
 
   let login = document.getElementsByName('login')[0].value;
-  let pass = document.getElementsByName('password')[0].value;
-  let form = document.getElementsByClassName('form')[0];
+  let password = document.getElementsByName('password')[0].value;
   let message = document.getElementsByClassName('message')[0];
 
   message.innerText = "";
 
-  if(login.length !== 0 && pass.length !== 0){
+  if (login.length !== 0 && password.length !== 0) {
 
     e.preventDefault();
 
     message.innerText = "Получение данных от сервера";
 
-    fetch(URL_REQUEST,{
-      method: "POST",
-      body: new FormData(form)
-    })
-    .then(result=>result.text())
-    .then(data=>{
+    let json = {
+      login,
+      password,
+      auth: true
+    };
 
-      switch(data){
+    json = JSON.stringify(json);
 
-        case STATUS_REQUEST['success']:
-          message.innerText = "Переход в приложение";
-          location = "app.php";
-          break;
-        case STATUS_REQUEST['userError']:
-          message.innerText = "Пользователь не найден.";
-          break;
-        case STATUS_REQUEST['passwordError']:
-          message.innerText = "Пароль неверный.";
-          break;
-        default:
-          message.innerText = `Ошибка: ${data}.`;
+    try{
 
+      let response = await API.send('auth','authUser', json);
+      
+      if(response !== true){
+        throw new Error('Даннные не корректные');
       }
 
-    }).catch(()=>{
-      message.innerHTML = "Ошибка подключения к серверу.";
-    });
+      message.innerText = 'Переход в приложение';
+      location = "app.php";
+
+    }catch(e){
+      message.innerText = `Ошибка: ${e.message}`;
+    }
 
   }
 

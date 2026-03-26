@@ -7,16 +7,29 @@ session_start();
 
 header('Content-Security-Policy: default-src \'self\'');
 
-if (!$_SESSION['isAdmin'] && !$_SESSION['login']) {
-  exit('Вы не являетесь администратором сайта');
-}
+$user = ['data' => [], 'error' => null];
 
-require_once "{$_SERVER['DOCUMENT_ROOT']}/assets/php/database.php";
-require_once "{$_SERVER['DOCUMENT_ROOT']}/assets/php/explorer.php";
+try {
 
-$user = $databaseController->getUserOnLogin($_SESSION['login']);
+  if (!$_SESSION['isAdmin'] && !$_SESSION['login'] && !$_SESSION['pathUser'] && !$_SESSION['pathStorage']) {
+    throw new ErrorException('Вы не являетесь администратором сайта!');
+  }
 
-if (is_null($user['error'])) {
+  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
+
+  $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
+  $explorer = new ExplorerController($_SESSION['pathUser'], $_SESSION['pathStorage']);
+
+  $user['data'] = $database->getUserById($_SESSION['idUser']);
+
+  if(is_null($user['data'])){
+    throw new ErrorException('Пользователь не найден');
+  }
+
+  $storageInfo = $database->getStorageInfo($_SESSION['idUser']);
+
   if ($user['data']['isAdmin']) {
     $user['data']['isAdminCheckBox'] = 'checked';
     $user['data']['isAdminText'] = 'Да';
@@ -24,9 +37,17 @@ if (is_null($user['error'])) {
     $user['data']['isAdminCheckBox'] = '';
     $user['data']['isAdminText'] = 'Нет';
   }
-  $user['data']['freeSize'] = $explorerController->formattedSize($user['data']['freeSize']);
-  $user['data']['sizeStorage'] = $explorerController->formattedSize((int) $user['data']['sizeStorage']);
-  $user['data']['maxSizeStorage'] = $explorerController->formattedSize((int) $user['data']['maxSizeStorage']);
+
+  unset($user['data']['password']);
+  $user['data']['freeSize'] = $explorer->shortSizeFile($storageInfo['freeSizeStorage']);
+  $user['data']['sizeStorage'] = $explorer->shortSizeFile($user['data']['sizeStorage']);
+  $user['data']['maxSizeStorage'] = $explorer->shortSizeFile($user['data']['maxSizeStorage']);
+
+
+  $database->close();
+
+} catch (Exception $e) {
+  $user['error'] = "Ошибка: {$e->getMessage()}!";
 }
 
-require_once "{$_SERVER['DOCUMENT_ROOT']}/view/adminView.php";
+require_once "{$_SERVER['DOCUMENT_ROOT']}/views/adminView.php";

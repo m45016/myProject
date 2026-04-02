@@ -2,45 +2,45 @@
 
 declare(strict_types=1);
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'reg' => (object)['type' => 'boolean', 'enum' => [true]],
+    'login' => (object)['type' => 'string', 'minLength' => 2],
+    'pass' => (object)['type' => 'string', 'minLength' => 8, 'pattern' => '^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}$'],
+    'rep_pass' => (object)['type' => 'string', 'minLength' => 8, 'pattern' => '^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}$'],
+    'email'=>(object)['type'=>'string', 'format'=>'email']
+  ],
+  'required' => ['reg', 'login', 'pass','rep_pass','email'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  if (
-    !property_exists($json, 'reg') ||
-    !property_exists($json, 'login') ||
-    !property_exists($json, 'pass') ||
-    !property_exists($json, 'rep_pass') ||
-    !property_exists($json, 'email')
-  ) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $schema->in($json);
 
-  if (!$json->reg) {
-    throw new ErrorException('Форма не действительна');
-  }
-
-  $login = $json->login;
+  $login = trim($json->login);
   $pass = $json->pass;
   $rep_pass = $json->rep_pass;
   $email = $json->email;
 
-  if (
-    gettype($login) !== 'string' ||
-    gettype($pass) !== 'string' ||
-    gettype($rep_pass) !== 'string' ||
-    gettype($email) !== 'string' ||
-    $pass !== $rep_pass ||
-    strlen($login) < 2 ||
-    !preg_match('/(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}/', $pass) ||
-    strlen($rep_pass) == 0 ||
-    strlen($email) == 0 ||
-    strpos($email, '@') === false ||
-    $email[strlen($email) - 1] === '@'
-  ) {
-    throw new ErrorException('Данные не корректны');
+  if(strlen($login)===0){
+    throw new ErrorException('Поля формы не должны состоять только из пробелов');
+  }
+
+  if ($pass !== $rep_pass) {
+    throw new ErrorException('Пароли не совпадают');
   }
 
   require_once "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -58,6 +58,9 @@ try {
 
   $response['data'] = true;
 
+  echo json_encode($response);
+} catch (InvalidValue $e){
+  $response['error']='Данные формы не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
   $error = $e->getMessage();

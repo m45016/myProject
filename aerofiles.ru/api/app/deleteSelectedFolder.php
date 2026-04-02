@@ -4,6 +4,22 @@ declare(strict_types=1);
 
 session_start();
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'pathFolder' => (object)['type' => 'string']
+  ],
+  'required' => ['pathFolder'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
@@ -14,17 +30,12 @@ try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  if (!property_exists($json, 'pathFolder')) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $schema->in($json);
 
-  $pathFolder = $json->pathFolder;
+  $pathFolder = trim($json->pathFolder);
 
-  if (
-    gettype($pathFolder) !== 'string' ||
-    $_POST['pathFolder'] === ''
-  ) {
-    throw new ErrorException('Данные не корректные');
+  if (strlen($pathFolder) === 0) {
+    throw new ErrorException('Данные состоят только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -42,6 +53,9 @@ try {
 
   $response['data'] = true;
 
+  echo json_encode($response);
+} catch(InvalidValue $e){
+  $response['error'] = 'Данные не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();

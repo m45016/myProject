@@ -218,17 +218,9 @@ class ExplorerController
 
     if (!is_file($filePath)) {
       throw new ExplorerError('Файл не найден');
-    } else if (!isset($_POST['t'])) {
-      $token = $this->genToken();
-      $_SESSION['t'] = $token;
-      return $token;
     }
 
-    $token = $_POST['t'];
-
-    if ($token === $_SESSION['t']) {
-      $this->explorer->downloadFile($filePath);
-    }
+    $this->explorer->downloadFile($filePath);
   }
 
   // Проверка вложенного копирования
@@ -352,5 +344,8 @@ class ExplorerController
     } else {
       return $this->explorer->getSizeFolder($path);
     }
+  }
+  public function sanitizePath(string $path):string{
+    return $this->explorer->sanitizePath($path);
   }
 }

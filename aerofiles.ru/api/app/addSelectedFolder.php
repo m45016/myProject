@@ -4,7 +4,24 @@ declare(strict_types=1);
 
 session_start();
 
-$request = ['data'=>[],'error'=>null];
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'nameFolder'=>(object)['type'=>'string'],
+    'pathFolder'=>(object)['type'=>'string']
+  ],
+  'required' => ['nameFolder','pathFolder'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
+$response = ['data'=>[],'error'=>null];
 
 try {
 
@@ -14,19 +31,13 @@ try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  if(!property_exists($json,'nameFolder') || !property_exists($json,'pathFolder')){
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $schema->in($json);
 
   $nameFolder = trim($json->nameFolder);
-  $pathFolder = $json->pathFolder;
+  $pathFolder = trim($json->pathFolder);
 
-  if (
-    gettype($nameFolder) !== 'string' ||
-    gettype($pathFolder) !== 'string' ||
-    strlen($nameFolder) === 0 || 
-    strlen($pathFolder) === 0) {
-    throw new ErrorException('Данные не корректны');
+  if (strlen($nameFolder) === 0 || strlen($pathFolder) === 0) {
+    throw new ErrorException('Данные состоят только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -39,13 +50,16 @@ try {
   $database->close();
 
   if (!$isAdd) {
-    throw new ErrorException('Не удалось добвить папку в избранное');
+    throw new ErrorException('Не удалось добавить папку в избранное');
   }
 
-  $request['data'] = true;
+  $response['data'] = true;
 
-  echo json_encode($request);
+  echo json_encode($response);
+} catch (InvalidValue $e){
+  $response['error']='Данные не валидны';
+  echo json_encode($response);
 } catch (Exception $e) {
-  $request['error']=$e->getMessage();
-  echo json_encode($request);
+  $response['error']=$e->getMessage();
+  echo json_encode($response);
 }

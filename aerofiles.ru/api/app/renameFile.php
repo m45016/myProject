@@ -4,6 +4,25 @@ declare(strict_types=1);
 
 session_start();
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'oldFullName' => (object)['type' => 'string'],
+    'newFullName' => (object)['type' => 'string'],
+    'isFile' => (object)['type' => 'boolean'],
+    'isSelectedFolder' => (object)['type' => 'boolean'],
+  ],
+  'required' => ['oldFullName','newFullName','isFile','isSelectedFolder'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
@@ -11,32 +30,19 @@ try {
   if (!isset($_SESSION['login']) || !isset($_SESSION['idUser']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) {
     throw new ErrorException('Сессия не активна');
   }
-
   $json = json_decode(file_get_contents('php://input'));
+  $schema->in($json);
 
-  if (
-    !property_exists($json, 'oldFullName') ||
-    !property_exists($json, 'newFullName') ||
-    !property_exists($json, 'isFile') ||
-    !property_exists($json, 'isSelectedFolder')
-  ) {
-    throw new ErrorException('Не корректная структура данных');
-  }
-
-  $oldName = $json->oldFullName;
+  $oldName = trim($json->oldFullName);
   $newName = trim($json->newFullName);
   $isFile = $json->isFile;
   $isSelecetdFolder = $json->isSelectedFolder;
 
   if (
-    gettype($oldName) !== 'string' ||
-    gettype($newName) !== 'string' ||
-    gettype($isFile) !== 'boolean' ||
-    gettype($isSelecetdFolder) !== 'boolean' ||
-    $oldName === '' || 
-    $newName === '' 
+    strlen($oldName) === 0 || 
+    strlen($newName) === 0 
   ) {
-    throw new ErrorException('Не корректные данные');
+    throw new ErrorException('Данные состоят только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
@@ -91,6 +97,9 @@ try {
   
   echo json_encode($response);
 
+} catch(InvalidValue $e){
+  $response['error']='Данные не валидны';
+  echo json_encode($response);
 } catch (Exception $e) {
   $response['error']=$e->getMessage();
   echo json_encode($response);

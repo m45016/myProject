@@ -57,11 +57,7 @@ export const selectedFoldersMethods = { // методы избранных па�
     let url = 'action/deleteSelectedFolder.php';
 
     try {
-      let response = await this.API.send('app', 'deleteSelectedFolder', json);
-
-      if (response !== true) {
-        throw new Error('Не корректные данные');
-      }
+      await this.API.send('app', 'deleteSelectedFolder', json);
 
       let folders = this.selectedFolders.folders;
       for (let i in folders) {
@@ -95,11 +91,7 @@ export const selectedFoldersMethods = { // методы избранных па�
 
     try {
 
-      let response = await this.API.send('app', 'addSelectedFolder', json);
-
-      if (response !== true) {
-        throw new Error('Не корректные данные');
-      }
+      await this.API.send('app', 'addSelectedFolder', json);
 
       this.selectedFolders.folders.push({
         folder: nameFolder,

@@ -4,6 +4,23 @@ declare(strict_types=1);
 
 session_start();
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'fileName' => (object)['type' => 'string'],
+    'isFile' => (object)['type' => 'boolean'],
+  ],
+  'required' => ['fileName', 'isFile'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
@@ -14,24 +31,18 @@ try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  if (!property_exists($json, 'fileName') || !property_exists($json, 'isFile')) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $schema->in($json);
 
-  $fileName = $json->fileName;
+  $fileName = trim($json->fileName);
   $isFile = $json->isFile;
   $sizeFile = null;
   $dataDeleted = null;
   $SelectedFolders = [];
   $folders = [];
 
-  if (
-    gettype($fileName) !== 'string' ||
-    gettype($isFile) !== 'boolean'
-  ) {
-    throw new ErrorException('Данные не корректные');
+  if(strlen($fileName)===0){
+    throw new ErrorException('Данные состоят только из пробелов');
   }
-
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
@@ -73,6 +84,9 @@ try {
   $response['data']['status'] = $STATUS_REQUEST['success'];
   $response['data']['folders'] = $folders;
 
+  echo json_encode($response);
+} catch(InvalidValue $e){
+  $response['error']='Данные не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
   $response['error']=$e->getMessage();

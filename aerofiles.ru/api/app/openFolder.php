@@ -3,6 +3,22 @@
 declare(strict_types=1);
 session_start();
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'path'=>(object)['type'=>'string']
+  ],
+  'required' => ['path'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
@@ -12,18 +28,13 @@ try {
   }
 
   $json = json_decode(file_get_contents('php://input'));
+  
+  $schema->in($json);
 
-  if (!property_exists($json, 'path')) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $path = trim($json->path);
 
-  $path = $json->path;
-
-  if (
-    gettype($path) !== 'string' ||
-    $path === ''
-  ) {
-    throw new ErrorException('Не корректные данные');
+  if (strlen($path) === 0) {
+    throw new ErrorException('Данные состоят только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
@@ -34,16 +45,16 @@ try {
   $fullPathFolder = "{$pathStorage}{$path}";
   $pathFolder = $path;
 
-  if (!is_dir($fullPathFolder)) {
+  $sanitazePath = $explorer->sanitizePath($fullPathFolder);
+
+  if ($fullPathFolder !== $sanitazePath || !is_dir($fullPathFolder)) {
 
     require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
     require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
     $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
 
-    $nameFolder = basename($path);
-
-    $isSelected = $database->isSelectedFolder($_SESSION['idUser'], $nameFolder, $pathFolder);
+    $isSelected = $database->isSelectedFolder($_SESSION['idUser'], $pathFolder);
     $isDeleted = null;
 
     if ($isSelected) {
@@ -88,6 +99,9 @@ try {
 
   echo json_encode($response);
 
+} catch(InvalidValue $e){
+  $response['error'] = 'Данные не валидны';
+  echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();
   echo json_encode($response);

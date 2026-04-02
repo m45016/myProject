@@ -38,7 +38,7 @@ export const documentMethods = { // методы привязанные к до�
     } else if (e.target.hasAttribute('path') && !e.target.classList.contains('__actionMenu__')) {
       console.log(e.target);
       let path = e.target.getAttribute('path');
-      this.goToPath(path, path);
+      this.goToPath(path);
     }
     this.hideContextMenu();
   }

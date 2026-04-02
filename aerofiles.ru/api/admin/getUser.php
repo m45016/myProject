@@ -2,29 +2,40 @@
 
 declare(strict_types=1);
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'login'=>(object)['type'=>'string', 'minLength'=>2]
+  ],
+  'required' => ['login'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
 
   session_start();
 
-  if (!isset($_SESSION['isAdmin']) || !isset($_SESSION['login']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) {
+  if ((!isset($_SESSION['isAdmin']) || !isset($_SESSION['login']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) || $_SESSION['isAdmin']==0) {
     throw new ErrorException('Вы не являетесь администратором сайта');
   }
 
   $json = json_decode(file_get_contents('php://input'));
+  
+  $schema->in($json);
 
-  if (!property_exists($json, 'login')) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $login = trim($json->login);
 
-  $login = $json->login;
-
-  if (
-    gettype($login) !== 'string' ||
-    strlen($login) === 0
-  ) {
-    throw new ErrorException('Данные не корректны');
+  if(strlen($login)===0){
+    throw new ErrorException('Поля формы не должны состоять только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -54,6 +65,9 @@ try {
   $response['data']['sizeStorage'] = $explorer->shortSizeFile($response['data']['sizeStorage']);
   $response['data']['maxSizeStorage'] = $explorer->shortSizeFile($response['data']['maxSizeStorage']);
 
+  echo json_encode($response);
+} catch(InvalidValue $e){
+  $response['error'] = 'Данные формы не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();

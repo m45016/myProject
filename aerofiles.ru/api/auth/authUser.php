@@ -2,30 +2,37 @@
 
 declare(strict_types=1);
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'auth' => (object)['type' => 'boolean', 'enum'=>[true]],
+    'login' => (object)['type' => 'string', 'minLength' => 2],
+    'password' => (object)['type' => 'string', 'minLength' => 8, 'pattern' => '^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}$']
+  ],
+  'required' => ['auth', 'login', 'password'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  if (!property_exists($json, 'auth') || !property_exists($json, 'login') || !property_exists($json, 'password')) {
-    throw new ErrorException('Не корректная структура данных');
-  }
+  $schema->in($json);
 
-  if (!$json->auth) {
-    throw new ErrorException('Форма не действительна');
-  }
-
-  $login = $json->login;
+  $login = trim($json->login);
   $pass = $json->password;
 
-  if (
-    gettype($login) !== 'string' ||
-    gettype($pass) !== 'string' ||
-    strlen($login) == 0 ||
-    strlen($pass) == 0
-  ) {
-    throw new ErrorException('Форма имеет пустые поля');
+  if(strlen($login)===0){
+    throw new ErrorException('Поля формы не должны состоять только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -47,6 +54,9 @@ try {
 
   $response['data'] = true;
 
+  echo json_encode($response);
+} catch (InvalidValue $e) {
+  $response['error'] = "Данные формы не валидны";
   echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();

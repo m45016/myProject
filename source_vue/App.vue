@@ -30,6 +30,7 @@ import {contextMenu, contextmenuMethods} from './mixins/contextmenu.js'
 import {documentMethods} from './mixins/documentMethods.js'
 import API from './mixins/apiModule.js';
 import { modal } from './mixins/modalWindow.js';
+import { validJSON } from './mixins/jsonSchema.js';
 
 // компоненты
 import componentEmptyStorage from './components/storage/EmptyStorage.vue'
@@ -67,7 +68,8 @@ export default {
       contextmenu: { ...contextMenu },
       selectedFolders: { ...selectedFolders },
       API,
-      modal
+      modal,
+      validJSON
     }
   },
   

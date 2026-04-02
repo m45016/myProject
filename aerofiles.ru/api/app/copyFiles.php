@@ -3,6 +3,25 @@
 declare(strict_types=1);
 session_start();
 
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+
+use Swaggest\JsonSchema\Schema;
+use Swaggest\JsonSchema\InvalidValue;
+
+$jsonSchema = (object)[
+  'type' => 'object',
+  'properties' => (object)[
+    'oldPath' => (object)['type' => 'string'],
+    'newPath' => (object)['type' => 'string'],
+    'fileName' => (object)['type' => 'string'],
+    'fileType' => (object)['type' => 'string'],
+  ],
+  'required' => ['oldPath', 'newPath', 'fileName', 'fileType'],
+  'additionalProperties' => false
+];
+
+$schema = Schema::import($jsonSchema);
+
 $response = ['data' => [], 'error' => null];
 
 try {
@@ -13,36 +32,23 @@ try {
 
   $json = json_decode(file_get_contents('php://input'));
 
-  $response['debug'] = $json;
+  $schema->in($json);
+
+  $oldPath = trim($json->oldPath);
+  $newPath = trim($json->newPath);
+  $file = [trim($json->fileName), trim($json->fileType)];
 
   if (
-    !property_exists($json, 'oldPath') ||
-    !property_exists($json, 'newPath') ||
-    !property_exists($json, 'fileName') ||
-    !property_exists($json, 'fileType')
-  ) {
-    throw new ErrorException('Не корректная структура данных');
-  }
-
-  $oldPath = $json->oldPath;
-  $newPath = $json->newPath;
-  $file = [$json->fileName, $json->fileType];
-
-  if (
-    gettype($oldPath) !== 'string' ||
-    gettype($newPath) !== 'string' ||
-    gettype($file[0]) !== 'string' ||
-    gettype($file[1]) !== 'string' ||
     strlen($oldPath) === 0 ||
     strlen($newPath) === 0 ||
     strlen($file[0]) === 0
   ) {
-    throw new ErrorException('Не корректные данные');
+    throw new ErrorException('Данные состоят только из пробелов');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
-  
-  $explorer = new ExplorerController($_SESSION['pathUser'],$_SESSION['pathStorage']);
+
+  $explorer = new ExplorerController($_SESSION['pathUser'], $_SESSION['pathStorage']);
 
   $pathFile = "{$oldPath}{$file[0]}{$file[1]}";
 
@@ -65,7 +71,7 @@ try {
 
   if (!$dataCopy['status']) {
     throw new ErrorException('Не удалось скопировать файл');
-  } 
+  }
 
   $storageInfo = $database->getStorageInfo($_SESSION['idUser']);
   $freeSizeInPercent = $storageInfo['freeSizeStorageInPercent'];
@@ -79,7 +85,9 @@ try {
   $response['data'] = $dataCopy;
 
   echo json_encode($response);
-
+}catch(InvalidValue $e){
+  $response['error']='Данные не валидны';
+  echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();
   echo json_encode($response);

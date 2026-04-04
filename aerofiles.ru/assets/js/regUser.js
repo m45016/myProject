@@ -46,10 +46,6 @@ document.getElementsByName('reg_btn')[0].addEventListener('click', async (e) => 
 
       let response = await API.send('auth','regUser', json);
 
-      if(response !== true){
-        throw new Error('Получены не корректные данные')
-      }
-
       message.innerText = "Регистрация успешна";
       location = 'auth.php';
 

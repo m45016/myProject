@@ -33,10 +33,6 @@ document.getElementsByName('resetPassword_btn')[0].addEventListener('click', asy
     try {
       let response = await API.send('auth','resetPasswordUser', json);
 
-      if(response !== true){
-        throw new Error('Получены не корректные данные');
-      }
-
       message.innerText = "Пароль изменен";
       location = "auth.php";
 

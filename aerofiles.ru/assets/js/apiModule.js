@@ -26,6 +26,10 @@ async function send(handler, action, json = null) {
     throw new Error('Получена не корректная структура данных');
   }
 
+  if (typeof response.error === 'string') {
+    throw new Error(response.error);
+  }
+
   return response['data'];
 
 }

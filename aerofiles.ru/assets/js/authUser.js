@@ -27,10 +27,6 @@ document.getElementsByName('auth_btn')[0].addEventListener('click', async (e) =>
     try{
 
       let response = await API.send('auth','authUser', json);
-      
-      if(response !== true){
-        throw new Error('Даннные не корректные');
-      }
 
       message.innerText = 'Переход в приложение';
       location = "app.php";

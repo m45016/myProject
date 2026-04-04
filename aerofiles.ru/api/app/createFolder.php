@@ -8,7 +8,7 @@ $response = ['data'=>[],'error'=>null];
 try {
 
   if (!isset($_SESSION['login']) || !isset($_SESSION['idUser']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) {
-    exit("Сессия недоступна");
+    throw new ErrorException('Сессия не активна');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";

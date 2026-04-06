@@ -260,6 +260,28 @@ class DataBaseModel
 
   }
 
+  public function getActiveUsers(): int{
+    $sql = 'SELECT * FROM `user` WHERE isActive = 1';
+
+    $query = $this->mysql->query($sql);
+
+    return $query->num_rows;
+  }
+
+  public function setAcviteUser(int $idUser, int $isActive):bool{
+    $sql = 'UPDATE `user` SET `isActive` = ? WHERE `id_user` = ?;';
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('ii', $isActive, $idUser);
+    $query->execute();
+
+    if($query->affected_rows === 0){
+      return false;
+    }
+
+    return true;
+  }
+
   // Закрытие БД
   public function close():void
   {

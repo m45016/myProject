@@ -5,14 +5,14 @@ declare(strict_types=1);
 
 session_start();
 
-header('Content-Security-Policy: default-src \'self\'');
+header('Content-Security-Policy: default-src \'self\' \'unsafe-eval\'');
 
 $user = ['data' => [], 'error' => null];
 
 try {
 
   if (!$_SESSION['isAdmin'] && !$_SESSION['login'] && !$_SESSION['pathUser'] && !$_SESSION['pathStorage']) {
-    throw new ErrorException('Вы не являетесь администратором сайта!');
+    exit('Вы не являетесь администратором сайта!');
   }
 
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
@@ -21,6 +21,8 @@ try {
 
   $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
   $explorer = new ExplorerController($_SESSION['pathUser'], $_SESSION['pathStorage']);
+
+  $activeUsers = $database->getActiveUsers();
 
   $user['data'] = $database->getUserById($_SESSION['idUser']);
 
@@ -42,7 +44,6 @@ try {
   $user['data']['freeSize'] = $explorer->shortSizeFile($storageInfo['freeSizeStorage']);
   $user['data']['sizeStorage'] = $explorer->shortSizeFile($user['data']['sizeStorage']);
   $user['data']['maxSizeStorage'] = $explorer->shortSizeFile($user['data']['maxSizeStorage']);
-
 
   $database->close();
 

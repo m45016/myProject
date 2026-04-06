@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1:3306
--- Время создания: Фев 19 2026 г., 07:02
+-- Время создания: Апр 06 2026 г., 04:18
 -- Версия сервера: 5.6.51-log
 -- Версия PHP: 7.4.30
 
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `selectedFolder` (
   `path` text COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `user` (`user`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `isAdmin` tinyint(1) NOT NULL,
   `sizeStorage` bigint(20) NOT NULL DEFAULT '0',
   `maxSizeStorage` bigint(20) NOT NULL DEFAULT '10737418240',
+  `isActive` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_user`),
   UNIQUE KEY `login` (`login`),
   UNIQUE KEY `email` (`email`)
@@ -64,9 +65,9 @@ CREATE TABLE IF NOT EXISTS `user` (
 -- Дамп данных таблицы `user`
 --
 
-INSERT INTO `user` (`id_user`, `login`, `password`, `email`, `isAdmin`, `sizeStorage`, `maxSizeStorage`) VALUES
-(1, 'Maxim', '$2y$10$4afLRWR0gdGnVTKC/Z5qwOxjUfqWZsmmPH4FTEOJdelhWkulBV6ia', 'Max@gmail.com', 0, 0, 10737418240),
-(2, 'Admin1', '$2y$10$kXQT9q1LNj.8PyOhnI8PEetZUM/yDPAU/0rAfel8splTzYubs5pD2', 'Admin@Panel1.com', 1, 0, 10737418240);
+INSERT INTO `user` (`id_user`, `login`, `password`, `email`, `isAdmin`, `sizeStorage`, `maxSizeStorage`, `isActive`) VALUES
+(1, 'Maxim', '$2y$10$0P6pj41SsjkTWawRkGcObel0Ke2l6/akO7XwJDeURi5aMWwDD5bpK', 'Max@gmail.com', 0, 3, 5242880, 0),
+(2, 'Admin1', '$2y$10$kXQT9q1LNj.8PyOhnI8PEetZUM/yDPAU/0rAfel8splTzYubs5pD2', 'Admin@Panel1.com', 1, 0, 10737418240, 0);
 
 --
 -- Ограничения внешнего ключа сохраненных таблиц

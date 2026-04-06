@@ -246,6 +246,22 @@ class DataBaseController
     return true;
   }
 
+  public function getActiveUsers(): int{
+    return $this->model->getActiveUsers();
+  }
+
+  public function setActiveUser(int $idUser, bool $isActive):bool{
+    if($isActive){
+      $isActive = 1;
+    }
+    else{
+      $isActive = 0;
+    }
+    
+    $isUpdate = $this->model->setAcviteUser($idUser, $isActive);
+    return $isUpdate;
+  }
+
   // Закрытие БД
   public function close()
   {

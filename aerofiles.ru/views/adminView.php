@@ -13,17 +13,18 @@
   <?php require $_SERVER['DOCUMENT_ROOT'] . '/assets/php/header.php' ?>
   <main>
     <h1>Админ панель</h1>
+    <div class="p-3">Активные пользователи: <?= $activeUsers?></div>
     <form id="form">
       <label for="login">Поиск пользователя</label>
-      <input type="text" id="login" name='login' placeholder="<?= $user['data']['login'] ?>" value="<?= $user['data']['login'] ?>">
+      <input type="text" id="login" name='login' placeholder="<?= htmlspecialchars($user['data']['login']) ?>" value="<?= $user['data']['login'] ?>">
       <input type="submit" id="findUser" class='btn' value="Поиск">
     </form>
     <div class='container'>
       <?php if (is_null($user['error'])): ?>
         <div class="user">
           <div class="rowData">ID: <span class='idUser'><?= $user['data']['id_user'] ?></span></div>
-          <div class="rowData">Имя пользователя: <span class='nameUser'><?= $user['data']['login'] ?></span></div>
-          <div class="rowData">Email: <span class='EmailUser'><?= $user['data']['email'] ?></span></div>
+          <div class="rowData">Имя пользователя: <span class='nameUser'><?= htmlspecialchars($user['data']['login']) ?></span></div>
+          <div class="rowData">Email: <span class='EmailUser'><?= htmlspecialchars($user['data']['email']) ?></span></div>
           <div class="rowData">Права администратора: <span class='isAdmin'><?= $user['data']['isAdminText'] ?></span></div>
           <div class="rowData">Сводбодное место в хранилище: <span class='freeStorage'><?= $user['data']['freeSize'] ?></span></div>
           <div class="rowData">Занятое место в хранилище: <span class='sizeStorage'><?= $user['data']['sizeStorage'] ?></span></div>

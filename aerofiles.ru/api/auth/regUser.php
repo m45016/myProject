@@ -50,9 +50,9 @@ try {
   $explorer = new ExplorerController('/', "{$_SERVER['DOCUMENT_ROOT']}/assets/storages");
   $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
 
-  $result = $database->regUser($login, $pass, $email);
-
   $explorer->createStorage($login);
+
+  $result = $database->regUser($login, $pass, $email);
 
   $database->close();
 

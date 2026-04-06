@@ -42,6 +42,8 @@ try {
 
   $user = $database->authUser($login, $pass);
 
+  $database->setActiveUser($user['id_user'],true);
+
   $database->close();
 
   session_start();

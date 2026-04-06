@@ -83,7 +83,7 @@ class ExplorerController
   public function createStorage(string $nameStorage): bool
   {
     if (!$this->explorer->isCorrectNameFile($nameStorage)) {
-      throw new ExplorerError('Некорректное имя папки');
+      throw new ExplorerError('Логин не должен содержать символы: / \\ ? * : < > |');
     }
     $isCreated = $this->explorer->createFolder($nameStorage);
     return $isCreated;

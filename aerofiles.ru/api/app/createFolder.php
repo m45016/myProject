@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 session_start();
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
-$response = ['data'=>[],'error'=>null];
+$response = ['data' => [], 'error' => null];
 
 try {
 
@@ -11,8 +12,15 @@ try {
     throw new ErrorException('Сессия не активна');
   }
 
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+  $datetime = new DateTimeController();
+
+  if (!$datetime->isPaymentTariff($_SESSION['tariffValidTo'])) {
+    throw new ErrorException('Оплатите тариф для разблокировки');
+  }
+
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
-  
+
   $explorer = new ExplorerController($_SESSION['pathUser'], $_SESSION['pathStorage']);
 
   $dataFolder = $explorer->createFolder();
@@ -25,7 +33,6 @@ try {
 
   $response['data'] = $data;
   echo json_encode($response);
-
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();
   echo json_encode($response);

@@ -9,6 +9,7 @@
     <div class="headerBlock">Дополнительная информация</div>
     <div class="contentBlock">
       <a href="/tutorial.php">О приложении</a>
+      <a href="/tariff.php">Тарифы</a>
     </div>
   </div>
 </footer>

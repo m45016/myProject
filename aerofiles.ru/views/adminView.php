@@ -24,29 +24,24 @@
         <div class="user">
           <div class="rowData">ID: <span class='idUser'><?= $user['data']['id_user'] ?></span></div>
           <div class="rowData">Имя пользователя: <span class='nameUser'><?= htmlspecialchars($user['data']['login']) ?></span></div>
+          <div class="rowData">Активен: <span><?= $user['data']['isActive'] ?></span></div>
           <div class="rowData">Email: <span class='EmailUser'><?= htmlspecialchars($user['data']['email']) ?></span></div>
           <div class="rowData">Права администратора: <span class='isAdmin'><?= $user['data']['isAdminText'] ?></span></div>
+          <div class="rowData">Баланс: <span><?= $user['data']['balance'] ?> руб.</span></div>
+          <div class="rowData">Тариф: <span><?= strtoupper($user['data']['tariff_name']) ?></span></div>
+          <div class="rowData">Дата оплаты: <span class='date'><?= $user['data']['date_payment']?$user['data']['date_payment']:'Не оплачен' ?></span></div>
+          <div class="rowData">Действителен до: <span class='date'><?= $user['data']['tariffValidTo']?$user['data']['tariffValidTo']:'Не оплачен' ?></span></div>
+          <div class="rowData">Тариф действителен: <span><?= $user['data']['isPaymentTariff'] ?></span></div>
           <div class="rowData">Сводбодное место в хранилище: <span class='freeStorage'><?= $user['data']['freeSize'] ?></span></div>
           <div class="rowData">Занятое место в хранилище: <span class='sizeStorage'><?= $user['data']['sizeStorage'] ?></span></div>
           <div class="rowData">Максимальный размер хранилища: <span class='maxStorage'><?= $user['data']['maxSizeStorage'] ?></span></div>
           <div class="actionUser">
             <div>Сделать админом: <span><input type="checkbox" class="setAdmin" <?= $user['data']['isAdminCheckBox'] ?>></span></div>
-            <div>Установить размер хранилища: <select class='setMaxStorage'>
+            <div>Установить тариф: <select class='setMaxStorage'>
                 <option value="No Change">No Change</option>
-                <option value="5 МБ">5 Мб</option>
-                <option value="10 МБ">10 Мб</option>
-                <option value="50 МБ">50 Мб</option>
-                <option value="100 МБ">100 Мб</option>
-                <option value="500 МБ">500 Мб</option>
-                <option value="10 ГБ">10 Гб</option>
-                <option value="25 ГБ">25 Гб</option>
-                <option value="50 ГБ">50 Гб</option>
-                <option value="75 ГБ">75 Гб</option>
-                <option value="100 ГБ">100 Гб</option>
-                <option value="250 ГБ">250 Гб</option>
-                <option value="500 ГБ">500 Гб</option>
-                <option value="750 ГБ">750 Гб</option>
-                <option value="1 ТБ">1 ТБ</option>
+                <?php foreach($user['data']['tariffs'] as $tariff):?>
+                  <option value="<?= $tariff['name']?>"><?= strtoupper($tariff['name'])?></option>
+                <?php endforeach;?>
               </select>
             </div>
             <div><button class='setChange'>Изменить данные</button></div>

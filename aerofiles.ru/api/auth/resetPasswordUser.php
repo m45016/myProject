@@ -1,8 +1,10 @@
 <?php
 
 declare(strict_types=1);
+session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;
@@ -10,11 +12,10 @@ use Swaggest\JsonSchema\InvalidValue;
 $jsonSchema = (object)[
   'type' => 'object',
   'properties' => (object)[
-    'resPass' => (object)['type' => 'boolean', 'enum' => [true]],
     'password' => (object)['type' => 'string', 'minLength' => 8, 'pattern' => '^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}$'],
-    'email'=>(object)['type'=>'string', 'format'=>'email']
+    'rep_password' => (object)['type' => 'string', 'minLength' => 8, 'pattern' => '^(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}$']
   ],
-  'required' => ['resPass', 'password','email'],
+  'required' => ['password', 'rep_password'],
   'additionalProperties' => false
 ];
 
@@ -24,17 +25,26 @@ $response = ['data' => [], 'error' => null];
 
 try {
 
+  if (!isset($_SESSION['codeResetPassword']) || !isset($_SESSION['emailResetPassword']) || !isset($_SESSION['isVerifyCode']) || !$_SESSION['isVerifyCode']) {
+    throw new ErrorException('Сессия не активна');
+  }
+
   $json = json_decode(file_get_contents('php://input'));
 
   $schema->in($json);
 
-  $email = $json->email;
   $password = $json->password;
+  $rep_password = $json->rep_password;
 
-  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
+  if ($password !== $rep_password) {
+    throw new ErrorException('Пароли не совпадают');
+  }
+
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
   $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
+
+  $email = $_SESSION['emailResetPassword'];
 
   $isReset = $database->resetPasswordUser($email, $password);
 
@@ -43,10 +53,10 @@ try {
   }
 
   $response['data'] = true;
-
+  $_SESSION = [];
   echo json_encode($response);
-} catch (InvalidValue $e){
-  $response['error']='Данные формы не валидны';
+} catch (InvalidValue $e) {
+  $response['error'] = 'Данные формы не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
   $response['error'] = $e->getMessage();

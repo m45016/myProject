@@ -5,27 +5,28 @@ import API from './apiModule.js';
 
 document.getElementsByName('resetPassword_btn')[0].addEventListener('click', async (e) => {
 
-  let email = document.getElementsByName('email')[0].value;
-  let password = document.getElementsByName('password')[0].value;
   let message = document.getElementsByClassName('message')[0];
+  let password = document.getElementsByName('password')[0].value;
+  let rep_password = document.getElementsByName('rep_password')[0].value;
 
   message.innerText = "";
 
-  if (
-    email.length !== 0 &&
+  if(password !== rep_password){
+    e.preventDefault();
+    message.innerText = 'Пароли не совпадают';
+  }
+  else if (
     /(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}/.test(password) &&
-    email.includes('@') &&
-    email[email.length - 1] !== '@'
+    /(?=.*\d)(?=.*[A-Z])(?=.*[a-z])[A-Za-z\d]{8,}/.test(rep_password)
   ) {
 
     e.preventDefault();
 
-    message.innerText = "Получение данных от сервера";
+    message.innerText = "Установка нового пароля...";
 
     let json = {
-      email,
       password,
-      resPass: true
+      rep_password
     };
 
     json = JSON.stringify(json);
@@ -33,8 +34,11 @@ document.getElementsByName('resetPassword_btn')[0].addEventListener('click', asy
     try {
       let response = await API.send('auth','resetPasswordUser', json);
 
-      message.innerText = "Пароль изменен";
-      location = "auth.php";
+      if(response){
+        location = 'auth.php';
+      }
+
+      message.innerText = "";
 
     } catch (e) {
       message.innerText = `Ошибка: ${e.message}`;

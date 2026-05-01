@@ -11,7 +11,7 @@ $user = ['data' => [], 'error' => null];
 
 try {
 
-  if (!$_SESSION['isAdmin'] && !$_SESSION['login'] && !$_SESSION['pathUser'] && !$_SESSION['pathStorage']) {
+  if (!isset($_SESSION['isAdmin']) && !isset($_SESSION['login']) && !isset($_SESSION['pathUser']) && !isset($_SESSION['pathStorage'])) {
     exit('Вы не являетесь администратором сайта!');
   }
 
@@ -40,10 +40,27 @@ try {
     $user['data']['isAdminText'] = 'Нет';
   }
 
+  $user['data']['isActive'] = $user['data']['isActive']?'Да':'Нет';
+
   unset($user['data']['password']);
   $user['data']['freeSize'] = $explorer->shortSizeFile($storageInfo['freeSizeStorage']);
   $user['data']['sizeStorage'] = $explorer->shortSizeFile($user['data']['sizeStorage']);
-  $user['data']['maxSizeStorage'] = $explorer->shortSizeFile($user['data']['maxSizeStorage']);
+  $user['data']['maxSizeStorage'] = $explorer->shortSizeFile($storageInfo['maxSizeStorage']);
+
+  $user['data']['tariffs'] = $database->getAllTariffs();
+
+  $isPaymentTariff = null;
+
+  if(!is_null($user['data']['date_payment'])){
+    require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+    $datetime = new DateTimeController();
+    $isPaymentTariff = $datetime->isPaymentTariff($user['data']['tariffValidTo']);
+  }
+  else{
+    $isPaymentTariff = false;
+  }
+  
+  $user['data']['isPaymentTariff'] = $isPaymentTariff?'Да':'Нет';
 
   $database->close();
 

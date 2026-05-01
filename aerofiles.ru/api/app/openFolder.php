@@ -4,6 +4,7 @@ declare(strict_types=1);
 session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;
@@ -11,7 +12,7 @@ use Swaggest\JsonSchema\InvalidValue;
 $jsonSchema = (object)[
   'type' => 'object',
   'properties' => (object)[
-    'path'=>(object)['type'=>'string']
+    'path' => (object)['type' => 'string']
   ],
   'required' => ['path'],
   'additionalProperties' => false
@@ -28,7 +29,7 @@ try {
   }
 
   $json = json_decode(file_get_contents('php://input'));
-  
+
   $schema->in($json);
 
   $path = trim($json->path);
@@ -49,7 +50,6 @@ try {
 
   if ($fullPathFolder !== $sanitazePath || !is_dir($fullPathFolder)) {
 
-    require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
     require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
     $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
@@ -94,12 +94,10 @@ try {
     ];
 
     $_SESSION['pathUser'] = $pathUser;
-    
   }
 
   echo json_encode($response);
-
-} catch(InvalidValue $e){
+} catch (InvalidValue $e) {
   $response['error'] = 'Данные не валидны';
   echo json_encode($response);
 } catch (Exception $e) {

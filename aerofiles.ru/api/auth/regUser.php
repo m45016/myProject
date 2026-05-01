@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
 
@@ -53,6 +54,12 @@ try {
   $explorer->createStorage($login);
 
   $result = $database->regUser($login, $pass, $email);
+
+  if(isset($_SESSION['goToReg']) && isset($_SESSION['setTariff'])){
+    $database->setTariffByLogin($login, $_SESSION['setTariff']);
+    unset($_SESSION['goToReg']);
+    unset($_SESSION['setTariff']);
+  }
 
   $database->close();
 

@@ -1,5 +1,7 @@
 <?php
 
+use Dotenv\Util\Str;
+
 require "{$_SERVER['DOCUMENT_ROOT']}/models/databaseModel.php";
 
 class DataBaseController
@@ -235,9 +237,9 @@ class DataBaseController
   }
 
   // Обновление данных пользователя
-  public function updateUserData(int $idUser, string $maxStorage, int $isAdmin): bool
+  public function updateUserData(int $idUser, string $tariff, int $isAdmin): bool
   {
-    $isUpdate = $this->model->updateUserData($idUser, $maxStorage, $isAdmin);
+    $isUpdate = $this->model->updateUserData($idUser, $tariff, $isAdmin);
 
     if ($isUpdate === 0) {
       return false;
@@ -260,6 +262,84 @@ class DataBaseController
     
     $isUpdate = $this->model->setAcviteUser($idUser, $isActive);
     return $isUpdate;
+  }
+
+  public function getAllTariffs(){
+    return $this->model->getAllTariffs();
+  }
+
+  public function getLimitTariffs(int $from, int $to=10):?object{
+    return $this->model->getLimitTariffs($from, $to);
+  }
+
+  public function getTariff(string $nameTariff):?array{
+    return $this->model->getTariff($nameTariff);
+  }
+
+  public function setTariff(int $idUser, string $nameTariff):bool{
+
+    $tariff = $this->model->getTariff($nameTariff);
+
+    if(is_null($tariff)){
+      throw new DataBaseError('Тариф не найден');
+    }
+
+    $idTariff = $tariff['id_tariff'];
+
+    return $this->model->setTariff($idUser, $idTariff);
+  }
+
+  public function setTariffByLogin(string $login, string $nameTariff):bool{
+
+    $tariff = $this->model->getTariff($nameTariff);
+
+    if(is_null($tariff)){
+      throw new DataBaseError('Тариф не найден');
+    }
+
+    $idTariff = $tariff['id_tariff'];
+
+    return $this->model->setTariffByLogin($login, $idTariff);
+  }
+
+  public function updateDatePaymentUser(int $idUser):?string{
+
+    $date = new DateTime();
+    $date = $date->format('Y-m-d H:i:s');
+
+    $isUpdate = $this->model->updateDatePaymentUser($idUser, $date);
+
+    if(!$isUpdate){
+      return null;
+    }
+    
+    return $date;
+
+  }
+
+  public function dropDatePayment(int $idUser):bool{
+    return $this->model->dropDatePayment($idUser);
+  }
+
+  public function paymentTariff(int $idUser, string $nameTariff):bool{
+    return $this->model->paymentTariff($idUser, $nameTariff);
+  }
+
+  public function addBalance(int $idUser, int $balance):array{
+
+    $currBalance = $this->getUserById($idUser)['balance'];
+
+    $isUpdate = $this->model->addBalance($idUser, $balance);
+    
+    if(!$isUpdate){
+      return ['balance'=>$currBalance,'isSuccess'=>false];
+    }
+
+    return ['balance'=>$currBalance + $balance, 'isSuccess'=>true];
+  }
+
+  public function isExistUser(string $email):bool{
+    return $this->model->isExistUser($email);
   }
 
   // Закрытие БД

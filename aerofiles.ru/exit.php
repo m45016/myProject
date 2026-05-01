@@ -5,7 +5,6 @@
 session_start();
 
 try{
-
   require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
@@ -20,6 +19,7 @@ try{
 }
 
 session_unset();
+session_regenerate_id(true);
 session_destroy();
 
 header("location: /");

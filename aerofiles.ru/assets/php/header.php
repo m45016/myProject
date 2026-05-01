@@ -5,6 +5,7 @@
   <div class="nav">
     <?php if(!empty($_SESSION['login'])):?>
       <a href="/app.php">Приложение</a>
+      <a href="/profile.php">Профиль</a>
       <?php if($_SESSION['isAdmin']):?>
         <a href="/admin">Админ панель</a>
       <?php endif;?>

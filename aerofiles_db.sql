@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1:3306
--- Время создания: Апр 06 2026 г., 04:18
+-- Время создания: Май 01 2026 г., 04:05
 -- Версия сервера: 5.6.51-log
 -- Версия PHP: 7.4.30
 
@@ -38,7 +38,35 @@ CREATE TABLE IF NOT EXISTS `selectedFolder` (
   `path` text COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   KEY `user` (`user`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблицы `tariff`
+--
+
+DROP TABLE IF EXISTS `tariff`;
+CREATE TABLE IF NOT EXISTS `tariff` (
+  `id_tariff` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(25) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `price` smallint(5) NOT NULL,
+  `maxSizeStorageText` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `maxSizeStorage` bigint(20) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id_tariff`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Дамп данных таблицы `tariff`
+--
+
+INSERT INTO `tariff` (`id_tariff`, `name`, `price`, `maxSizeStorageText`, `maxSizeStorage`) VALUES
+(1, 'test', 0, '5 Мб', 5242880),
+(2, 'free', 0, '10 Гб', 10737418240),
+(3, 'standart', 350, '100 Гб', 107374182400),
+(4, 'premium', 750, '500 Гб', 536870912000),
+(5, 'vip', 1250, '1 Тб', 1099511627776);
 
 -- --------------------------------------------------------
 
@@ -54,20 +82,23 @@ CREATE TABLE IF NOT EXISTS `user` (
   `email` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
   `isAdmin` tinyint(1) NOT NULL,
   `sizeStorage` bigint(20) NOT NULL DEFAULT '0',
-  `maxSizeStorage` bigint(20) NOT NULL DEFAULT '10737418240',
   `isActive` tinyint(1) NOT NULL DEFAULT '0',
+  `tariff` int(11) NOT NULL DEFAULT '2',
+  `date_payment` datetime DEFAULT CURRENT_TIMESTAMP,
+  `balance` int(10) UNSIGNED NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_user`),
   UNIQUE KEY `login` (`login`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  KEY `tariff` (`tariff`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Дамп данных таблицы `user`
 --
 
-INSERT INTO `user` (`id_user`, `login`, `password`, `email`, `isAdmin`, `sizeStorage`, `maxSizeStorage`, `isActive`) VALUES
-(1, 'Maxim', '$2y$10$0P6pj41SsjkTWawRkGcObel0Ke2l6/akO7XwJDeURi5aMWwDD5bpK', 'Max@gmail.com', 0, 3, 5242880, 0),
-(2, 'Admin1', '$2y$10$kXQT9q1LNj.8PyOhnI8PEetZUM/yDPAU/0rAfel8splTzYubs5pD2', 'Admin@Panel1.com', 1, 0, 10737418240, 0);
+INSERT INTO `user` (`id_user`, `login`, `password`, `email`, `isAdmin`, `sizeStorage`, `isActive`, `tariff`, `date_payment`, `balance`) VALUES
+(1, 'Maxim', '$2y$10$kwOkaT8DtvTJog9wlujEoezuuqB56nT9ZhfDMq3rEs31wrL/JO2fm', 'maxim0004k@gmail.com', 0, 0, 0, 5, '2026-04-25 00:35:00', 1170),
+(2, 'Admin1', '$2y$10$kXQT9q1LNj.8PyOhnI8PEetZUM/yDPAU/0rAfel8splTzYubs5pD2', 'Admin@Panel1.com', 1, 0, 1, 2, '2026-04-26 09:04:42', 420);
 
 --
 -- Ограничения внешнего ключа сохраненных таблиц
@@ -78,6 +109,12 @@ INSERT INTO `user` (`id_user`, `login`, `password`, `email`, `isAdmin`, `sizeSto
 --
 ALTER TABLE `selectedFolder`
   ADD CONSTRAINT `selectedfolder_ibfk_1` FOREIGN KEY (`user`) REFERENCES `user` (`id_user`) ON DELETE CASCADE;
+
+--
+-- Ограничения внешнего ключа таблицы `user`
+--
+ALTER TABLE `user`
+  ADD CONSTRAINT `user_ibfk_1` FOREIGN KEY (`tariff`) REFERENCES `tariff` (`id_tariff`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

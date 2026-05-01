@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 $response = ['data'=>[], 'error'=>null];
 
@@ -13,7 +14,6 @@ try {
 
   $_SESSION['pathUser'] = '/';
 
-  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
 

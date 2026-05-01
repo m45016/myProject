@@ -15,7 +15,7 @@ class ModalWindow {
     let modalWindow = `<div class="modalContainer">
                             <div class="modalWindow">
                               <div class="modalHeader">Подтвердите действие</div>
-                              <div class="modalText">${text}</div>
+                              <div class="modalText"></div>
                               <div class="modalActions">
                                 <button class="modalOk btn">ОК</button>
                                 <button class="modalCancel btn">Отмена</button>
@@ -29,6 +29,7 @@ class ModalWindow {
     this.Ok = document.querySelector('.modalOk');
     this.Cancel = document.querySelector('.modalCancel');
     this.modalText = document.querySelector('.modalText');
+    this.modalText.innerText = text;
     setTimeout(()=>{
       this.modal.children[0].style.transform = "rotateX(0deg)";
       this.Ok.focus();

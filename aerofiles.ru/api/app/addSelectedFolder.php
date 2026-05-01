@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;
@@ -29,6 +30,13 @@ try {
     throw new ErrorException('Сессия не активна');
   }
 
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+  $datetime = new DateTimeController();
+  
+  if(!$datetime->isPaymentTariff($_SESSION['tariffValidTo'])){
+    throw new ErrorException('Оплатите тариф для разблокировки');
+  }
+
   $json = json_decode(file_get_contents('php://input'));
 
   $schema->in($json);
@@ -40,7 +48,6 @@ try {
     throw new ErrorException('Данные состоят только из пробелов');
   }
 
-  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
   $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);

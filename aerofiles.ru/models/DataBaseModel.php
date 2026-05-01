@@ -6,22 +6,6 @@ class DataBaseModel
 {
 
   private mysqli $mysql; // база данных
-  private array $sizesStorage = [ // типы размеров хранилища
-    '5 МБ' => 5242880,
-    '10 МБ' => 10485760,
-    '50 МБ' => 52428800,
-    '100 МБ' => 104857600,
-    '500 МБ' => 524288000,
-    '10 ГБ' => 10737418240,
-    '25 ГБ' => 26843545600,
-    '50 ГБ' => 53687091200,
-    '75 ГБ' => 80530636800,
-    '100 ГБ' => 107374182400,
-    '250 ГБ' => 268435456000,
-    '500 ГБ' => 536870912000,
-    '750 ГБ' => 805306368000,
-    '1 ТБ' => 1099511627776
-  ];
 
   public function __construct(string $domain, string $user, string $password, string $db_name)
   {
@@ -30,6 +14,8 @@ class DataBaseModel
     if ($mysql->connect_error) {
       throw new DataBaseError("База данных не найдена");
     }
+
+    $mysql->query('SET time_zone = "+00:00";');
 
     $this->mysql = $mysql;
   }
@@ -54,7 +40,7 @@ class DataBaseModel
   public function getUser(string $login): object
   {
 
-    $sql = "SELECT * FROM `user` WHERE `login` = ?;";
+    $sql = "SELECT `user`.*, DATE_FORMAT(DATE_ADD(`date_payment`, INTERVAL 1 MONTH),'%Y-%m-%d %T') as `tariffValidTo`, CURRENT_TIMESTAMP as `current_date`, `tariff`.`name` as `tariff_name` FROM `user` JOIN `tariff` ON `tariff`.`id_tariff` = `user`.`tariff` WHERE `login` = ?;";
 
     $query = $this->mysql->prepare($sql);
     $query->bind_param('s', $login);
@@ -70,7 +56,7 @@ class DataBaseModel
   public function getUserById(int $idUser): object
   {
 
-    $sql = "SELECT * FROM `user` WHERE `id_user` = ?";
+    $sql = "SELECT `user`.*, DATE_FORMAT(DATE_ADD(`date_payment`, INTERVAL 1 MONTH),'%Y-%m-%d %T') as `tariffValidTo`, CURRENT_TIMESTAMP as `current_date`, `tariff`.`name` as `tariff_name` FROM `user` JOIN `tariff` ON `tariff`.`id_tariff` = `user`.`tariff` WHERE `id_user` = ?";
 
     $query = $this->mysql->prepare($sql);
     $query->bind_param('i', $idUser);
@@ -183,7 +169,7 @@ class DataBaseModel
   // Добавление размера хранилищу пользователя
   public function addSizeStorage(int $idUser, int $fileSize): bool
   {
-    $sql = "UPDATE `user` SET `sizeStorage` = `sizeStorage` + ? WHERE `id_user` = ? AND `sizeStorage` + ? <= `maxSizeStorage`;";
+    $sql = "UPDATE `user` as `u` JOIN `tariff` as `t` ON `u`.`tariff` = `t`.`id_tariff` SET `u`.`sizeStorage` = `u`.`sizeStorage` + ? WHERE `u`.`id_user` = ? AND `u`.`sizeStorage` + ? <= `t`.`maxSizeStorage`;";
 
     $query = $this->mysql->prepare($sql);
     $query->bind_param('iii', $fileSize, $idUser, $fileSize);
@@ -217,7 +203,7 @@ class DataBaseModel
   // Получение данных о хранилище пользователя
   public function getStorageInfo(int $idUser):object
   {
-    $sql = "SELECT `maxSizeStorage` - `sizeStorage` as `freeSizeStorage`, `maxSizeStorage`, `sizeStorage` / `maxSizeStorage` * 100 as `freeSizeStorageInPercent` FROM `user` WHERE `id_user` = ?;";
+    $sql = "SELECT `t`.`maxSizeStorage` - `u`.`sizeStorage` as `freeSizeStorage`, `t`.`maxSizeStorage`, `u`.`sizeStorage` / `t`.`maxSizeStorage` * 100 as `freeSizeStorageInPercent` FROM `user` as `u` JOIN `tariff` as `t` ON `u`.`tariff` = `t`.`id_tariff` WHERE `id_user` = ?;";
     $query = $this->mysql->prepare($sql);
     $query->bind_param('i', $idUser);
     $query->execute();
@@ -229,7 +215,7 @@ class DataBaseModel
   }
 
   // Обновление данных пользователя
-  public function updateUserData(int $idUser, string $maxStorage, int $isAdmin):int
+  public function updateUserData(int $idUser, string $tariff, int $isAdmin):int
   {
     $user = $this->getUserById($idUser);
 
@@ -239,21 +225,16 @@ class DataBaseModel
     
     $user = $user->fetch_assoc();
 
-    if($maxStorage === 'No Change'){
-      $maxStorage = $user['maxSizeStorage'];
-    }
-    else{
-      $maxStorage = $this->sizesStorage[$maxStorage];
-    }
+    $tariff = $this->getTariff($tariff)['id_tariff'];
 
-    if(gettype($maxStorage) !== 'integer' || $isAdmin > 1 || $isAdmin < 0){
+    if($isAdmin > 1 || $isAdmin < 0 || $tariff <= 0 || is_null($tariff)){
       return 0;
     }
     
-    $sql = 'UPDATE `user` SET `maxSizeStorage` = ?, `isAdmin` = ? WHERE `id_user` = ?;';
+    $sql = 'UPDATE `user` SET `isAdmin` = ?, `tariff` = ? WHERE `id_user` = ?;';
 
     $query = $this->mysql->prepare($sql);
-    $query->bind_param('iii', $maxStorage, $isAdmin, $idUser);
+    $query->bind_param('iii', $isAdmin, $tariff, $idUser);
     $query->execute();
 
     return $query->affected_rows;
@@ -281,6 +262,153 @@ class DataBaseModel
 
     return true;
   }
+
+  public function getAllTariffs(){
+    $sql = "SELECT * FROM `tariff`";
+    $query = $this->mysql->query($sql);
+    return $query;
+  }
+
+  public function getTariff(string $nameTariff):?array{
+    $sql = "SELECT * FROM `tariff` WHERE `name`=?";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('s',$nameTariff);
+    $query->execute();
+    $result = $query->get_result();
+
+    if($result->num_rows === 0){
+      return null;
+    }
+
+    return $result->fetch_assoc();
+  }
+
+  public function getLimitTariffs(int $from, int $to=10):?object{
+    $sql = "SELECT * FROM `tariff` LIMIT ?,?";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('ii',$from, $to);
+    $query->execute();
+    $result = $query->get_result();
+
+    if($result->num_rows === 0){
+      return null;
+    }
+
+    return $result;
+  }
+
+  public function setTariff(int $idUser, int $idTariff):bool{
+    $sql = "UPDATE `user` SET `tariff` = ? WHERE `id_user` = ?;";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('ii',$idTariff,$idUser);
+    $query->execute();
+    
+    if($query->affected_rows <=0){
+      return false;
+    }
+
+    return true;
+
+  }
+
+  public function setTariffByLogin(string $login, int $idTariff):bool{
+    $sql = "UPDATE `user` SET `tariff` = ? WHERE `login` = ?;";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('is',$idTariff,$login);
+    $query->execute();
+    
+    if($query->affected_rows <=0){
+      return false;
+    }
+
+    return true;
+
+  }
+
+  public function updateDatePaymentUser(int $idUser, string $date):bool{
+    $sql = "UPDATE `user` SET `date_payment` = ? WHERE `id_user` = ?;";
+    
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('si',$date,$idUser);
+    $query->execute();
+
+    if($query->affected_rows <= 0){
+      return false;
+    }
+
+    return true;
+
+  }
+
+  public function dropDatePayment(int $idUser):bool{
+
+    $sql = "UPDATE `user` SET `date_payment` = null WHERE `id_user` = ?";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('i',$idUser);
+    $query->execute();
+
+    if($query->affected_rows<=0){
+      return false;
+    }
+
+    return true;
+
+  }
+
+  public function paymentTariff(int $idUser, string $nameTariff):bool{
+
+    $priceTariff = $this->getTariff($nameTariff)['price'];
+    
+    $sql = "UPDATE `user` SET `balance` = `balance` - ? WHERE `id_user` = ? AND `balance` - ? > 0";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('iii', $priceTariff, $idUser, $priceTariff);
+    $query->execute();
+
+    if($query->affected_rows <= 0){
+      return false;
+    }
+
+    return true;
+  }
+
+  public function addBalance(int $idUser, int $balance):bool{
+    $sql = "UPDATE `user` SET `balance` = `balance` + ? WHERE `id_user` = ? AND `balance` + ? < 30000";
+
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('iii',$balance,$idUser,$balance);
+    $query->execute();
+
+    if($query->affected_rows <= 0){
+      return false;
+    }
+
+    return true;
+
+  }
+
+  public function isExistUser(string $email):bool{
+
+    $sql = "SELECT `email` FROM `user` WHERE `email` = ?;";
+    
+    $query = $this->mysql->prepare($sql);
+    $query->bind_param('s',$email);
+    $query->execute();
+    $result = $query->get_result();
+    
+    if($result->num_rows === 0){
+      return false;
+    }
+
+    return true;
+
+  }
+
 
   // Закрытие БД
   public function close():void

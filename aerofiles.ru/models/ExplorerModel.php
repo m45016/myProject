@@ -148,7 +148,7 @@ class ExplorerModel
   // Получение даты из timestamp
   public function getDataFromTimestamp(int $timestamp): string
   {
-    return date("d.m.Y G:i:s", $timestamp);
+    return date("Y-m-d H:i:s", $timestamp);
   }
 
   // Урезание дробного числа до чисел после точки

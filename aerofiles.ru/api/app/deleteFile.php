@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;
@@ -29,6 +30,13 @@ try {
     throw new ErrorException('Сессия не активна');
   }
 
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+  $datetime = new DateTimeController();
+
+  if (!$datetime->isPaymentTariff($_SESSION['tariffValidTo'])) {
+    throw new ErrorException('Оплатите тариф для разблокировки');
+  }
+
   $json = json_decode(file_get_contents('php://input'));
 
   $schema->in($json);
@@ -40,11 +48,10 @@ try {
   $SelectedFolders = [];
   $folders = [];
 
-  if(strlen($fileName)===0){
+  if (strlen($fileName) === 0) {
     throw new ErrorException('Данные состоят только из пробелов');
   }
 
-  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
@@ -85,10 +92,10 @@ try {
   $response['data']['folders'] = $folders;
 
   echo json_encode($response);
-} catch(InvalidValue $e){
-  $response['error']='Данные не валидны';
+} catch (InvalidValue $e) {
+  $response['error'] = 'Данные не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
-  $response['error']=$e->getMessage();
+  $response['error'] = $e->getMessage();
   echo json_encode($response);
 }

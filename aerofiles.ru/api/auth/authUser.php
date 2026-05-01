@@ -48,14 +48,21 @@ try {
 
   session_start();
 
+  session_regenerate_id(true);
+
+  if(!empty($_SESSION)){
+    $_SESSION = [];
+  }
+
   $_SESSION['idUser'] = $user['id_user'];
   $_SESSION['login'] = $user['login'];
   $_SESSION['isAdmin'] = $user['isAdmin'];
   $_SESSION['pathStorage'] = $_SERVER['DOCUMENT_ROOT'] . "/assets/storages/" . $user['login'];
   $_SESSION['pathUser'] = '/';
-
+  $_SESSION['tariffValidTo'] = $user['tariffValidTo'];
+  $_SESSION['tariff'] = $user['tariff_name'];
+  
   $response['data'] = true;
-
   echo json_encode($response);
 } catch (InvalidValue $e) {
   $response['error'] = "Данные формы не валидны";

@@ -2,16 +2,32 @@
 
 import API from "./apiModule.js";
 import { modal } from "./modalWindow.js";
+import { Datetime } from "./datetimeModule.js";
+
+function formattedDates() {
+  let datetime = new Datetime();
+
+  let dates = Object.values(document.getElementsByClassName('date'));
+  dates.forEach(date => {
+    datetime.setDate(date.innerText);
+    let formattedDate = datetime.getDate();
+    if(formattedDate === null){
+      return 0;
+    }
+    date.innerText = formattedDate;
+  });
+}
+
 
 document.addEventListener('click', async (e) => {
   if (e.target.classList.contains('setChange')) {
     let isAdmin = e.target.parentNode.parentNode.children[0].children[0].children[0].checked;
-    let maxStorage = e.target.parentNode.parentNode.children[1].children[0].value;
+    let tariff = e.target.parentNode.parentNode.children[1].children[0].value;
     let idUser = Number(e.target.parentNode.parentNode.parentNode.children[0].children[0].innerText);
 
     let json = {
       isAdmin,
-      maxStorage,
+      tariff,
       idUser
     };
 
@@ -36,8 +52,6 @@ document.addEventListener('click', async (e) => {
 document.getElementById('findUser').addEventListener('click', async (e) => {
   e.preventDefault();
 
-  let url = '/action/getUser.php';
-
   let login = document.querySelector("input[name='login']").value;
   let container = document.getElementsByClassName('container')[0];
 
@@ -53,45 +67,31 @@ document.getElementById('findUser').addEventListener('click', async (e) => {
 
     let response = await API.send('admin', 'getUser', json);
 
-    if (
-      response?.id_user === undefined ||
-      response?.login === undefined ||
-      response?.email === undefined ||
-      response?.isAdminText === undefined ||
-      response?.freeSize === undefined ||
-      response?.sizeStorage === undefined ||
-      response?.maxSizeStorage === undefined ||
-      response?.isAdminCheckBox === undefined
-    ) {
-      throw new Error('Получены не корректные данные');
-    }
+    let tariffs = '';
+
+    response.tariffs.forEach(tariff => {
+      tariffs += `<option value="${tariff.name}">${tariff.name.toUpperCase()}</option>`;
+    });
 
     user = `<div class="user">
           <div class="rowData">ID: <span class='idUser'>${response.id_user}</span></div>
           <div class="rowData">Имя пользователя: <span class='nameUser'>${response.login}</span></div>
+          <div class="rowData">Активен: <span>${response.isActive}</span></div>
           <div class="rowData">Email: <span class='EmailUser'>${response.email}</span></div>
           <div class="rowData">Права администратора: <span class='isAdmin'>${response.isAdminText}</span></div>
+          <div class="rowData">Баланс: <span>${response.balance} руб.</span></div>
+          <div class="rowData">Тариф: <span>${response.tariff_name.toUpperCase()}</span></div>
+          <div class="rowData">Дата оплаты: <span class='date'>${response.date_payment !== null ? response.date_payment : 'Не оплачен'}</span></div>
+          <div class="rowData">Действителен до: <span class='date'>${response.tariffValidTo !== null ? response.tariffValidTo : 'Не оплачен'}</span></div>
+          <div class="rowData">Тариф действителен: <span>${response.isPaymentTariff}</span></div>
           <div class="rowData">Сводбодное место в хранилище: <span class='freeStorage'>${response.freeSize}</span></div>
           <div class="rowData">Занятое место в хранилище: <span class='sizeStorage'>${response.sizeStorage}</span></div>
           <div class="rowData">Максимальный размер хранилища: <span class='maxStorage'>${response.maxSizeStorage}</span></div>
           <div class="actionUser">
-            <div>Сделать админом: <span><input type="checkbox" class="setAdmin" ${response.isAdminCheckBox}> </span></div>
-            <div>Установить размер хранилища: <select class='setMaxStorage'>
+            <div>Сделать админом: <span><input type="checkbox" class="setAdmin" ${response.isAdminCheckBox}></span></div>
+            <div>Установить тариф: <select class='setMaxStorage'>
                 <option value="No Change">No Change</option>
-                <option value="5 МБ">5 Мб</option>
-                <option value="10 МБ">10 Мб</option>
-                <option value="50 МБ">50 Мб</option>
-                <option value="100 МБ">100 Мб</option>
-                <option value="500 МБ">500 Мб</option>
-                <option value="10 ГБ">10 Гб</option>
-                <option value="25 ГБ">25 Гб</option>
-                <option value="50 ГБ">50 Гб</option>
-                <option value="75 ГБ">75 Гб</option>
-                <option value="100 ГБ">100 Гб</option>
-                <option value="250 ГБ">250 Гб</option>
-                <option value="500 ГБ">500 Гб</option>
-                <option value="750 ГБ">750 Гб</option>
-                <option value="1 ТБ">1 ТБ</option>
+                ${tariffs}
               </select>
             </div>
             <div><button class='setChange'>Изменить данные</button></div>
@@ -105,4 +105,8 @@ document.getElementById('findUser').addEventListener('click', async (e) => {
   container.innerHTML = '';
   container.insertAdjacentHTML('beforeend', user);
 
+  formattedDates();
+
 });
+
+document.addEventListener("DOMContentLoaded", formattedDates)

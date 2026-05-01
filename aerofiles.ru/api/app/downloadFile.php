@@ -4,6 +4,7 @@ declare(strict_types=1);
 session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/jsonSchema/autoload.php";
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
 use Swaggest\JsonSchema\Schema;
 use Swaggest\JsonSchema\InvalidValue;
@@ -17,7 +18,7 @@ $jsonSchema = (object)[
     'isFile' => (object)['type' => 'boolean'],
     'isSelectedFolder' => (object)['type' => 'boolean'],
   ],
-  'required' => ['oldFullName','newFullName','isFile','isSelectedFolder'],
+  'required' => ['oldFullName', 'newFullName', 'isFile', 'isSelectedFolder'],
   'additionalProperties' => false
 ];
 
@@ -30,6 +31,14 @@ try {
   if (!isset($_SESSION['login']) || !isset($_SESSION['idUser']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) {
     throw new ErrorException('Сессия не активна');
   }
+
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+  $datetime = new DateTimeController();
+
+  if (!$datetime->isPaymentTariff($_SESSION['tariffValidTo'])) {
+    throw new ErrorException('Оплатите тариф для разблокировки');
+  }
+
   $json = json_decode(file_get_contents('php://input'));
   $schema->in($json);
 
@@ -39,8 +48,8 @@ try {
   $isSelecetdFolder = $json->isSelectedFolder;
 
   if (
-    strlen($oldName) === 0 || 
-    strlen($newName) === 0 
+    strlen($oldName) === 0 ||
+    strlen($newName) === 0
   ) {
     throw new ErrorException('Данные состоят только из пробелов');
   }
@@ -58,8 +67,7 @@ try {
   $response['data']['isRenamed'] = $isRenamed;
 
   if (!$isFile) {
-    
-    require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
+
     require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
     $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
@@ -69,38 +77,34 @@ try {
 
     if ($isSelecetdFolder) {
       $update = $database->updateSelectedFolder($_SESSION['idUser'], $oldName, $newName, $oldpathFolder, $newPathFolder);
-      if($update){
-        $response['data']['isSelectedFolder'] = ['oldname'=>$oldName, 'newName'=>$newName, 'oldPath'=>$oldpathFolder, 'newPath'=>$newPathFolder];
-      }
-      else{
-        $response['data']['isSelectedFolder'] = null;        
+      if ($update) {
+        $response['data']['isSelectedFolder'] = ['oldname' => $oldName, 'newName' => $newName, 'oldPath' => $oldpathFolder, 'newPath' => $newPathFolder];
+      } else {
+        $response['data']['isSelectedFolder'] = null;
       }
     }
 
     $database->updatePathSelectedFolders($_SESSION['idUser'], $oldpathFolder, $newPathFolder);
-    
+
     $selectedFolders = $database->getSelectedFolders($_SESSION['idUser']);
 
-    if(!is_null($selectedFolders)){
-      $response['data']['selectedFolders'] = $selectedFolders;      
-    }
-    else{
-      $response['data']['selectedFolders'] = null;      
+    if (!is_null($selectedFolders)) {
+      $response['data']['selectedFolders'] = $selectedFolders;
+    } else {
+      $response['data']['selectedFolders'] = null;
     }
 
     $database->close();
-  }
-  else{
+  } else {
     $response['data']['selectedFolders'] = null;
     $response['data']['isSelectedFolder'] = null;
   }
-  
-  echo json_encode($response);
 
-} catch(InvalidValue $e){
-  $response['error']='Данные не валидны';
+  echo json_encode($response);
+} catch (InvalidValue $e) {
+  $response['error'] = 'Данные не валидны';
   echo json_encode($response);
 } catch (Exception $e) {
-  $response['error']=$e->getMessage();
+  $response['error'] = $e->getMessage();
   echo json_encode($response);
 }

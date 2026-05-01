@@ -11,10 +11,10 @@ $jsonSchema = (object)[
   'type' => 'object',
   'properties' => (object)[
     'idUser'=>(object)['type'=>'integer', 'minimum'=>1],
-    'maxStorage'=>(object)['type'=>'string', 'enum'=>['No Change', '5 МБ','10 МБ','50 МБ','100 МБ','500 МБ','10 ГБ','25 ГБ','50 ГБ','75 ГБ','100 ГБ','250 ГБ','500 ГБ','750 ГБ','1 ТБ']],
+    'tariff'=>(object)['type'=>'string', 'enum'=>['No Change', 'test','free','standart','premium','vip']],
     'isAdmin'=>(object)['type'=>'boolean']
   ],
-  'required' => ['idUser','maxStorage','isAdmin'],
+  'required' => ['idUser','tariff','isAdmin'],
   'additionalProperties' => false
 ];
 
@@ -35,7 +35,7 @@ try {
   $schema->in($json);
 
   $idUser = $json->idUser;
-  $maxStorage = $json->maxStorage;
+  $tariff = $json->tariff;
   $isAdmin = $json->isAdmin;
 
   if (!$isAdmin) {
@@ -49,7 +49,7 @@ try {
 
   $database = new DataBaseController(DOMAIN, USER, PASSWORD, DB_NAME);
 
-  $isUpdate = $database->updateUserData($idUser, $maxStorage, $isAdmin);
+  $isUpdate = $database->updateUserData($idUser, $tariff, $isAdmin);
 
   if (!$isUpdate) {
     throw new ErrorException('Данные не изменены');

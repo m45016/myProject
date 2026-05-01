@@ -10,7 +10,7 @@ use Swaggest\JsonSchema\InvalidValue;
 $jsonSchema = (object)[
   'type' => 'object',
   'properties' => (object)[
-    'login'=>(object)['type'=>'string', 'minLength'=>2]
+    'login' => (object)['type' => 'string', 'minLength' => 2]
   ],
   'required' => ['login'],
   'additionalProperties' => false
@@ -24,17 +24,17 @@ try {
 
   session_start();
 
-  if ((!isset($_SESSION['isAdmin']) || !isset($_SESSION['login']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) || $_SESSION['isAdmin']==0) {
+  if ((!isset($_SESSION['isAdmin']) || !isset($_SESSION['login']) || !isset($_SESSION['pathUser']) || !isset($_SESSION['pathStorage'])) || $_SESSION['isAdmin'] == 0) {
     throw new ErrorException('Вы не являетесь администратором сайта');
   }
 
   $json = json_decode(file_get_contents('php://input'));
-  
+
   $schema->in($json);
 
   $login = trim($json->login);
 
-  if(strlen($login)===0){
+  if (strlen($login) === 0) {
     throw new ErrorException('Поля формы не должны состоять только из пробелов');
   }
 
@@ -60,13 +60,36 @@ try {
     $response['data']['isAdminCheckBox'] = '';
     $response['data']['isAdminText'] = 'Нет';
   }
+
+  $response['data']['isActive'] = $response['data']['isActive'] ? 'Да' : 'Нет';
+
   unset($response['data']['password']);
   $response['data']['freeSize'] = $explorer->shortSizeFile($storageInfo['freeSizeStorage']);
   $response['data']['sizeStorage'] = $explorer->shortSizeFile($response['data']['sizeStorage']);
-  $response['data']['maxSizeStorage'] = $explorer->shortSizeFile($response['data']['maxSizeStorage']);
+  $response['data']['maxSizeStorage'] = $explorer->shortSizeFile($storageInfo['maxSizeStorage']);
+
+  $tariffs = $database->getAllTariffs();
+
+  $response['data']['tariffs'] = [];
+
+  foreach ($tariffs as $tariff) {
+    array_push($response['data']['tariffs'], $tariff);
+  }
+
+  $isPaymentTariff = null;
+
+  if (!is_null($response['data']['date_payment'])) {
+    require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+    $datetime = new DateTimeController();
+    $isPaymentTariff = $datetime->isPaymentTariff($response['data']['tariffValidTo']);
+  } else {
+    $isPaymentTariff = false;
+  }
+
+  $response['data']['isPaymentTariff'] = $isPaymentTariff ? 'Да' : 'Нет';
 
   echo json_encode($response);
-} catch(InvalidValue $e){
+} catch (InvalidValue $e) {
   $response['error'] = 'Данные формы не валидны';
   echo json_encode($response);
 } catch (Exception $e) {

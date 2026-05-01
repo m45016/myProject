@@ -17,7 +17,7 @@
     <div class="formContainer">
       <form class="form">
         <div class="formBlock">
-          <h2 class="headerForm">Аутентификация</h2>
+          <h2 class="headerForm">Вход в аккаунт</h2>
         </div>
         <div class="formBlock">
           <label>Логин</label>

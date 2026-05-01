@@ -1,10 +1,10 @@
 <?php
 
 declare(strict_types=1);
-
 session_start();
+require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
 
-$response = ['data'=>[],'error'=>null];
+$response = ['data' => [], 'error' => null];
 
 try {
 
@@ -12,11 +12,17 @@ try {
     throw new ErrorException('Сессия не активна');
   }
 
+  require "{$_SERVER['DOCUMENT_ROOT']}/controllers/datetimeController.php";
+  $datetime = new DateTimeController();
+
+  if (!$datetime->isPaymentTariff($_SESSION['tariffValidTo'])) {
+    throw new ErrorException('Оплатите тариф для разблокировки');
+  }
+
   if ($_FILES['file']['error']) {
     throw new ErrorException("Файл загружен с ошибкой.\nПопробуйте позже.");
   }
 
-  require "{$_SERVER['DOCUMENT_ROOT']}/assets/php/config.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/explorerController.php";
   require "{$_SERVER['DOCUMENT_ROOT']}/controllers/databaseController.php";
 
@@ -42,7 +48,7 @@ try {
   $storageInfo = $database->getStorageInfo($_SESSION['idUser']);
   $freeSizeInPercent = $storageInfo['freeSizeStorageInPercent'];
   $freeSize = $explorer->shortSizeFile($storageInfo['freeSizeStorage']);
-  
+
   $response['data']['freeSizeInPercent'] = $freeSizeInPercent;
   $response['data']['freeSize'] = $freeSize;
 
@@ -50,6 +56,6 @@ try {
 
   echo json_encode($response);
 } catch (Exception $e) {
-  $response['error']=$e->getMessage();
+  $response['error'] = $e->getMessage();
   echo json_encode($response);
 }
